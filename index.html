@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注音轉盤遊戲-無結合韻版</title>
+    <style>
+        :root {
+            --primary-color: #FF9AA2;
+            --bg-color: #FFF9F2;
+            --text-color: #333;
+            --wheel-border: #fff;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-y: auto; 
+            padding: 20px 0;
+        }
+
+        h1 {
+            color: #666;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.05);
+            text-align: center;
+            font-weight: 800;
+            letter-spacing: 2px;
+            font-size: 28px;
+        }
+
+        .game-container {
+            position: relative;
+            width: 350px;
+            height: 350px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid #FF6F91;
+            z-index: 100;
+            filter: drop-shadow(0 3px 3px rgba(0,0,0,0.2));
+        }
+
+        .wheel {
+            position: absolute;
+            border-radius: 50%;
+            transition: transform 4s cubic-bezier(0.1, 0, 0.2, 1);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background: white;
+        }
+
+        .wheel-item {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform-origin: 50% 100%;
+            display: flex;
+            justify-content: center;
+            padding-top: 5px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 1px 1px 0 rgba(255,255,255,0.6);
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        /* 外層：聲母 */
+        .outer-ring {
+            width: 340px;
+            height: 340px;
+            z-index: 1;
+            font-size: 18px;
+        }
+        .outer-ring .wheel-item {
+            height: 170px;
+            width: 40px;
+            margin-left: -20px;
+        }
+
+        /* 中層：韻母 */
+        .middle-ring {
+            width: 240px;
+            height: 240px;
+            z-index: 2;
+            font-size: 20px;
+            border: 4px solid var(--wheel-border);
+        }
+        .middle-ring .wheel-item {
+            height: 120px;
+            width: 40px;
+            margin-left: -20px;
+            padding-top: 5px;
+        }
+
+        /* 內層：聲調 */
+        .inner-ring {
+            width: 140px;
+            height: 140px;
+            z-index: 3;
+            font-size: 24px;
+            border: 4px solid var(--wheel-border);
+        }
+        .inner-ring .wheel-item {
+            height: 70px;
+            width: 60px;
+            margin-left: -30px;
+            padding-top: 15px;
+        }
+
+        .center-btn {
+            position: absolute;
+            width: 65px;
+            height: 65px;
+            background: radial-gradient(circle at 30% 30%, #FFB7B2, #FF9AA2);
+            border-radius: 50%;
+            z-index: 10;
+            border: 5px solid white;
+            box-shadow: 0 5px 15px rgba(255, 154, 162, 0.4);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #333;
+            font-size: 18px;
+            transition: transform 0.1s;
+        }
+
+        .center-btn:active {
+            transform: scale(0.95);
+        }
+
+        .result-panel {
+            margin-top: 25px;
+            background: white;
+            padding: 20px 35px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center;
+            min-width: 280px;
+            z-index: 10;
+            border: 2px solid #FFF0F5; 
+        }
+
+        .result-labels {
+            display: flex;
+            justify-content: space-around;
+            font-size: 15px;
+            color: #888;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .result-boxes {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .result-box {
+            width: 65px;
+            height: 65px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .box-initial { background-color: #FF9AA2; }
+        .box-final { background-color: #88D8B0; }
+        .box-tone { background-color: #FFDAC1; }
+        
+        .full-sound {
+            margin-top: 15px;
+            font-size: 22px;
+            color: #666;
+            height: 28px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 400px) {
+            .game-container {
+                transform: scale(0.85);
+            }
+            .result-panel {
+                min-width: 260px;
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>注音轉盤遊戲-無結合韻版</h1>
+
+    <div class="game-container">
+        <div class="pointer"></div>
+        <div class="wheel outer-ring" id="wheel-initial"></div>
+        <div class="wheel middle-ring" id="wheel-final"></div>
+        <div class="wheel inner-ring" id="wheel-tone"></div>
+        <div class="center-btn" onclick="spinWheel()">開始</div>
+    </div>
+
+    <div class="result-panel">
+        <div class="result-labels">
+            <span style="width: 65px">聲母</span>
+            <span style="width: 65px">韻母</span>
+            <span style="width: 65px">聲調</span>
+        </div>
+        <div class="result-boxes">
+            <div class="result-box box-initial" id="res-initial">?</div>
+            <div class="result-box box-final" id="res-final">?</div>
+            <div class="result-box box-tone" id="res-tone">?</div>
+        </div>
+        <div class="full-sound" id="res-text">準備開始...</div>
+    </div>
+
+    <script>
+        const initials = [
+            'ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ',
+            'ㄐ','ㄑ','ㄒ','ㄓ','ㄔ','ㄕ','ㄖ','ㄗ','ㄘ','ㄙ'
+        ];
+        
+        const finals = [
+            'ㄚ','ㄛ','ㄜ','ㄝ','ㄞ','ㄟ','ㄠ','ㄡ','ㄢ','ㄣ','ㄤ','ㄥ','ㄦ',
+            'ㄧ','ㄨ','ㄩ'
+        ];
+        
+        // 0:一聲, 1:二聲, 2:三聲, 3:四聲
+        const tones = [
+            { label: ' ', name: '一聲', display: ' ' },
+            { label: 'ˊ', name: '二聲', display: 'ˊ' },
+            { label: 'ˇ', name: '三聲', display: 'ˇ' },
+            { label: 'ˋ', name: '四聲', display: 'ˋ' }
+        ];
+
+        // === 智慧聲調資料庫 ===
+        // key: 聲母 + 韻母
+        // value: 允許的聲調索引陣列 [0, 1, 2, 3] 代表 一,二,三,四聲
+        // 若組合不在表中，程式會預設使用嚴格規則或預設值。
+        // 這裡列出常見的「有限制聲調」的組合
+        
+        const toneDatabase = {
+            // ㄅ
+            'ㄅㄚ': [0, 1, 2, 3], 'ㄅㄛ': [0, 1, 2, 3], 'ㄅㄞ': [0, 1, 2, 3], 'ㄅㄟ': [0, 1, 2, 3], 
+            'ㄅㄠ': [0, 2, 3], 'ㄅㄢ': [0, 2, 3], 'ㄅㄣ': [0, 2, 3], 'ㄅㄤ': [0, 2, 3], 'ㄅㄥ': [0, 2, 3],
+            'ㄅㄧ': [0, 1, 2, 3], 'ㄅㄨ': [0, 2, 3],
+            // ㄆ
+            'ㄆㄚ': [0, 1, 3], 'ㄆㄛ': [0, 1, 3, 2], 'ㄆㄞ': [0, 1, 2, 3], 'ㄆㄟ': [0, 1, 2, 3], 
+            'ㄆㄠ': [0, 1, 3], 'ㄆㄡ': [0, 3], 'ㄆㄢ': [0, 1, 2, 3], 'ㄆㄣ': [0, 1, 3], 
+            'ㄆㄤ': [0, 1, 2], 'ㄆㄥ': [0, 1, 2, 3], 'ㄆㄧ': [0, 1, 2, 3], 'ㄆㄨ': [0, 1, 2, 3],
+            // ㄇ
+            'ㄇㄚ': [0, 1, 2, 3], 'ㄇㄛ': [0, 1, 2, 3], 'ㄇㄜ': [0, 1, 3], 'ㄇㄞ': [1, 2, 3], 
+            'ㄇㄟ': [1, 2, 3], 'ㄇㄠ': [0, 1, 2, 3], 'ㄇㄡ': [1, 2, 3], 'ㄇㄢ': [1, 2, 3], 
+            'ㄇㄣ': [1, 3], 'ㄇㄤ': [1, 2], 'ㄇㄥ': [0, 1, 2, 3], 'ㄇㄧ': [0, 1, 2, 3], 'ㄇㄨ': [0, 2, 3],
+            // ㄈ
+            'ㄈㄚ': [0, 1, 2, 3], 'ㄈㄛ': [1, 2], // 佛, 坲? (通常只有二聲)
+            'ㄈㄟ': [0, 1, 2, 3], 'ㄈㄡ': [2, 3], 'ㄈㄢ': [0, 1, 2, 3], 'ㄈㄣ': [0, 1, 2, 3], 
+            'ㄈㄤ': [0, 1, 2, 3], 'ㄈㄥ': [0, 1, 2, 3], 'ㄈㄨ': [0, 1, 2, 3],
+            // ㄉ
+            'ㄉㄚ': [0, 1, 2, 3], 'ㄉㄜ': [0, 1, 3], // 嘚, 德, 淂
+            'ㄉㄞ': [0, 2, 3], 'ㄉㄟ': [0, 2], 'ㄉㄠ': [0, 2, 3], 'ㄉㄡ': [0, 2, 3], 
+            'ㄉㄢ': [0, 2, 3], 'ㄉㄣ': [0, 3], 'ㄉㄤ': [0, 2, 3], 'ㄉㄥ': [0, 2, 3], 
+            'ㄉㄧ': [0, 1, 2, 3], 'ㄉㄨ': [0, 1, 2, 3],
+            // ㄊ
+            'ㄊㄚ': [0, 2, 3], 'ㄊㄜ': [3], // 忒
+            'ㄊㄞ': [0, 1, 2, 3], 'ㄊㄟ': [3], 'ㄊㄠ': [0, 1, 2, 3], 'ㄊㄡ': [0, 1, 2, 3], 
+            'ㄊㄢ': [0, 1, 2, 3], 'ㄊㄤ': [0, 1, 2, 3], 'ㄊㄥ': [0, 1, 2], 
+            'ㄊㄧ': [0, 1, 2, 3], 'ㄊㄨ': [0, 1, 2, 3],
+            // ㄋ
+            'ㄋㄚ': [1, 2, 3], 'ㄋㄜ': [3], 'ㄋㄞ': [2, 3], 'ㄋㄟ': [2, 3], 
+            'ㄋㄠ': [1, 2, 3], 'ㄋㄡ': [3], 'ㄋㄢ': [0, 1, 2, 3], 'ㄋㄣ': [3], 
+            'ㄋㄤ': [1, 2, 3], 'ㄋㄥ': [1, 2], 'ㄋㄧ': [0, 1, 2, 3], 'ㄋㄨ': [1, 2, 3], 'ㄋㄩ': [2, 3],
+            // ㄌ
+            'ㄌㄚ': [0, 1, 2, 3], 'ㄌㄛ': [0, 4], // 囉
+            'ㄌㄜ': [3], 'ㄌㄞ': [1, 3], 'ㄌㄟ': [1, 2, 3], 'ㄌㄠ': [0, 1, 2, 3], 
+            'ㄌㄡ': [0, 1, 2, 3], 'ㄌㄢ': [1, 2, 3], 'ㄌㄤ': [1, 2, 3], 'ㄌㄥ': [0, 1, 3], 
+            'ㄌㄧ': [0, 1, 2, 3], 'ㄌㄨ': [0, 1, 2, 3], 'ㄌㄩ': [1, 2, 3],
+            // ㄍ
+            'ㄍㄚ': [0, 1, 3], 'ㄍㄜ': [0, 1, 2, 3], 'ㄍㄞ': [0, 1, 3], 'ㄍㄟ': [2], 
+            'ㄍㄠ': [0, 1, 2, 3], 'ㄍㄡ': [0, 3], 'ㄍㄢ': [0, 2, 3], 'ㄍㄣ': [0, 2, 3], 
+            'ㄍㄤ': [0, 2, 3], 'ㄍㄥ': [0, 2, 3], 'ㄍㄨ': [0, 2, 3],
+            // ㄎ
+            'ㄎㄚ': [0, 2, 3], 'ㄎㄜ': [0, 1, 2, 3], 'ㄎㄞ': [0, 2, 3], 'ㄎㄟ': [2, 3], 
+            'ㄎㄠ': [0, 2, 3], 'ㄎㄡ': [0, 3], 'ㄎㄢ': [0, 1, 2, 3], 'ㄎㄣ': [0, 2, 3], 
+            'ㄎㄤ': [0, 1, 2, 3], 'ㄎㄥ': [0, 3], 'ㄎㄨ': [0, 2, 3],
+            // ㄏ
+            'ㄏㄚ': [0, 1, 2, 3], 'ㄏㄜ': [0, 1, 2, 3], 'ㄏㄞ': [0, 1, 2, 3], 'ㄏㄟ': [0], 
+            'ㄏㄠ': [0, 1, 2, 3], 'ㄏㄡ': [0, 2, 3], 'ㄏㄢ': [0, 1, 2, 3], 'ㄏㄣ': [0, 2, 3], 
+            'ㄏㄤ': [0, 1, 2, 3], 'ㄏㄥ': [0, 1, 2, 3], 'ㄏㄨ': [0, 1, 2, 3],
+            // ㄐ
+            'ㄐㄧ': [0, 1, 2, 3], 'ㄐㄩ': [0, 1, 2, 3],
+            // ㄑ
+            'ㄑㄧ': [0, 1, 2, 3], 'ㄑㄩ': [0, 1, 2, 3],
+            // ㄒ
+            'ㄒㄧ': [0, 1, 2, 3], 'ㄒㄩ': [0, 1, 2, 3],
+            // ㄓ
+            'ㄓㄚ': [0, 1, 2, 3], 'ㄓㄜ': [0, 1, 2, 3], 'ㄓㄞ': [0, 1, 2, 3], 'ㄓㄟ': [3], 
+            'ㄓㄠ': [0, 1, 2, 3], 'ㄓㄡ': [0, 1, 2, 3], 'ㄓㄢ': [0, 2, 3], 'ㄓㄣ': [0, 2, 3], 
+            'ㄓㄤ': [0, 2, 3], 'ㄓㄥ': [0, 2, 3], 'ㄓㄨ': [0, 1, 2, 3],
+            // ㄔ
+            'ㄔㄚ': [0, 1, 2, 3], 'ㄔㄜ': [0, 2, 3], // 車, 扯, 徹
+            'ㄔㄞ': [0, 1, 3], 'ㄔㄠ': [0, 1, 2, 3], 'ㄔㄡ': [0, 1, 2, 3], 
+            'ㄔㄢ': [0, 1, 2, 3], 'ㄔㄣ': [0, 1, 2, 3], 'ㄔㄤ': [0, 1, 2, 3], 'ㄔㄥ': [0, 1, 2, 3], 
+            'ㄔㄨ': [0, 1, 2, 3],
+            // ㄕ
+            'ㄕㄚ': [0, 2, 3], 'ㄕㄜ': [0, 1, 2, 3], 'ㄕㄞ': [0, 3], 'ㄕㄟ': [1, 3], 
+            'ㄕㄠ': [0, 1, 2, 3], 'ㄕㄡ': [0, 2, 3], 'ㄕㄢ': [0, 2, 3], 'ㄕㄣ': [0, 1, 2, 3], 
+            'ㄕㄤ': [0, 2, 3], 'ㄕㄥ': [0, 1, 2, 3], 'ㄕㄨ': [0, 1, 2, 3],
+            // ㄖ
+            'ㄖㄜ': [3], 'ㄖㄠ': [1, 2, 3], 'ㄖㄡ': [1, 3], 'ㄖㄢ': [1, 2, 3], 
+            'ㄖㄣ': [1, 2, 3], 'ㄖㄤ': [1, 2, 3], 'ㄖㄥ': [0, 1], 'ㄖㄨ': [1, 2, 3],
+            // ㄗ
+            'ㄗㄚ': [0, 1, 2], 'ㄗㄜ': [0, 1, 2, 3], 'ㄗㄞ': [0, 3], 'ㄗㄟ': [1], 
+            'ㄗㄠ': [0, 2, 3], 'ㄗㄡ': [0, 2, 3], 'ㄗㄢ': [0, 1, 3], 'ㄗㄣ': [2], 
+            'ㄗㄤ': [0, 1, 3], 'ㄗㄥ': [0, 3], 'ㄗㄨ': [0, 1, 2, 3],
+            // ㄘ
+            'ㄘㄚ': [0, 1], 'ㄘㄜ': [3], // 冊, 策, 測 (只有四聲)
+            'ㄘㄞ': [0, 1, 2, 3], 'ㄘㄟ': [3], 'ㄘㄠ': [0, 2, 3], 'ㄘㄡ': [0, 3], 
+            'ㄘㄢ': [0, 1, 2, 3], 'ㄘㄣ': [0, 1], 'ㄘㄤ': [0, 1, 2], 'ㄘㄥ': [0, 1, 2, 3], 
+            'ㄘㄨ': [0, 1, 2, 3],
+            // ㄙ
+            'ㄙㄚ': [0, 2, 3], 'ㄙㄜ': [3], // 色, 澀 (只有四聲)
+            'ㄙㄞ': [0, 3], 'ㄙㄟ': [3], 'ㄙㄠ': [0, 2, 3], 'ㄙㄡ': [0, 2, 3], 
+            'ㄙㄢ': [0, 2, 3], 'ㄙㄣ': [0], 'ㄙㄤ': [0, 2, 3], 'ㄙㄥ': [0], 
+            'ㄙㄨ': [0, 1, 2, 3]
+        };
+
+        const colors = [
+            '#FF9AA2', '#B5EAD7', '#FFDAC1', '#90CCF4', '#F3D250', 
+            '#C7CEEA', '#FAB1A0', '#81ECEC', '#FFB7B2', '#E2F0CB', '#957DAD'
+        ];
+
+        let rotInitial = 0;
+        let rotFinal = 0;
+        let rotTone = 0;
+
+        function createWheel(id, items, radius) {
+            const wheel = document.getElementById(id);
+            const count = items.length;
+            const anglePerItem = 360 / count;
+            
+            let gradientStr = '';
+            items.forEach((item, index) => {
+                const startDeg = index * anglePerItem;
+                const endDeg = (index + 1) * anglePerItem;
+                const color = colors[index % colors.length];
+                gradientStr += `${color} ${startDeg}deg ${endDeg}deg,`;
+                
+                const el = document.createElement('div');
+                el.className = 'wheel-item';
+                const itemCenterDeg = startDeg + (anglePerItem / 2);
+                
+                el.style.transform = `rotate(${itemCenterDeg}deg)`;
+                
+                let displayText = typeof item === 'object' ? item.display : item;
+                el.innerHTML = displayText;
+
+                wheel.appendChild(el);
+            });
+            wheel.style.background = `conic-gradient(${gradientStr.slice(0, -1)})`;
+        }
+
+        function init() {
+            createWheel('wheel-initial', initials, 170);
+            createWheel('wheel-final', finals, 120);
+            createWheel('wheel-tone', tones, 70);
+        }
+
+        function getValidTones(initial, final) {
+            const key = initial + final;
+            // 查表，如果表中有資料就用，沒有則預設全部聲調 (Fallback)
+            // 為了保險起見，如果找不到組合，回傳 [0,1,2,3]
+            if (toneDatabase[key]) {
+                return toneDatabase[key];
+            }
+            
+            // 簡單的 Fallback：如果不在常見列表，假設大部分聲調都可用
+            // 但為了嚴格起見，如果組合不存在於 DB (且我們相信DB完整)，則代表該聲母韻母組合不合法
+            // 但這裡我們主要處理「聲母韻母合法，但聲調有限制」的情況
+            // 假設之前的 validRules 已經過濾了大部分
+            return [0, 1, 2, 3];
+        }
+
+        // 基於之前的 validRules (基本組合規則)
+        const basicValidRules = {
+            'ㄅ': 'ㄚㄛㄞㄟㄠㄢㄣㄤㄥㄧㄨ',
+            'ㄆ': 'ㄚㄛㄞㄟㄠㄡㄢㄣㄤㄥㄧㄨ',
+            'ㄇ': 'ㄚㄛㄜㄞㄟㄠㄡㄢㄣㄤㄥㄧㄨ',
+            'ㄈ': 'ㄚㄛㄟㄡㄢㄣㄤㄥㄨ',
+            'ㄉ': 'ㄚㄜㄞㄟㄠㄡㄢㄣㄤㄥㄧㄨ',
+            'ㄊ': 'ㄚㄜㄞㄟㄠㄡㄢㄤㄥㄧㄨ',
+            'ㄋ': 'ㄚㄜㄞㄟㄠㄡㄢㄣㄤㄥㄧㄨㄩ',
+            'ㄌ': 'ㄚㄛㄜㄞㄟㄠㄡㄢㄤㄥㄧㄨㄩ',
+            'ㄍ': 'ㄚㄜㄞㄟㄠㄡㄢㄣㄤㄥㄨ',
+            'ㄎ': 'ㄚㄜㄞㄟㄠㄡㄢㄣㄤㄥㄨ',
+            'ㄏ': 'ㄚㄜㄞㄟㄠㄡㄢㄣㄤㄥㄨ',
+            'ㄐ': 'ㄧㄩ',
+            'ㄑ': 'ㄧㄩ',
+            'ㄒ': 'ㄧㄩ',
+            'ㄓ': 'ㄚㄜㄞㄟㄠㄡㄢㄣㄤㄥㄨ',
+            'ㄔ': 'ㄚㄜㄞㄠㄡㄢㄣㄤㄥㄨ',
+            'ㄕ': 'ㄚㄜㄞㄟㄠㄡㄢㄣㄤㄥㄨ',
+            'ㄖ': 'ㄜㄠㄡㄢㄣㄤㄥㄨ',
+            'ㄗ': 'ㄚㄜㄞㄟㄠㄡㄢㄣㄤㄥㄨ',
+            'ㄘ': 'ㄚㄜㄞㄟㄠㄡㄢㄣㄤㄥㄨ',
+            'ㄙ': 'ㄚㄜㄞㄟㄠㄡㄢㄣㄤㄥㄨ'
+        };
+
+        function getRandomValidCombo() {
+            let safetyCounter = 0;
+            while(safetyCounter < 100) {
+                safetyCounter++;
+                
+                // 1. 隨機選聲母
+                const randomInitial = initials[Math.floor(Math.random() * initials.length)];
+                const allowedFinalsStr = basicValidRules[randomInitial];
+                if (!allowedFinalsStr) continue;
+
+                // 2. 隨機選韻母
+                const randomFinalChar = allowedFinalsStr[Math.floor(Math.random() * allowedFinalsStr.length)];
+                
+                // 3. 取得該組合允許的聲調
+                const allowedTonesIndices = getValidTones(randomInitial, randomFinalChar);
+                
+                if (allowedTonesIndices.length > 0) {
+                    // 4. 隨機選一個合法的聲調
+                    const randomToneIndex = allowedTonesIndices[Math.floor(Math.random() * allowedTonesIndices.length)];
+                    const randomTone = tones[randomToneIndex];
+
+                    return {
+                        iIdx: initials.indexOf(randomInitial),
+                        fIdx: finals.indexOf(randomFinalChar),
+                        tIdx: randomToneIndex, // 這裡直接用 tone 的 index
+                        val: { i: randomInitial, f: randomFinalChar, t: randomTone }
+                    };
+                }
+            }
+            // 萬一 loop 太久 (理論上不會)，回傳預設值
+            return { 
+                iIdx: 0, fIdx: 0, tIdx: 0, 
+                val: { i: 'ㄅ', f: 'ㄚ', t: tones[0] } 
+            };
+        }
+
+        function spinWheel() {
+            const btn = document.querySelector('.center-btn');
+            btn.style.pointerEvents = 'none';
+            btn.innerText = '...';
+
+            const target = getRandomValidCombo();
+
+            const calcTargetRotation = (idx, count, currentRot) => {
+                const angleStep = 360 / count;
+                const itemCenter = (idx * angleStep) + (angleStep / 2);
+                const degreesToRotate = 360 - itemCenter;
+                const currentFullSpins = Math.floor(currentRot / 360);
+                const targetFullSpins = currentFullSpins + 5; 
+                return (targetFullSpins * 360) + degreesToRotate;
+            };
+
+            rotInitial = calcTargetRotation(target.iIdx, initials.length, rotInitial);
+            rotFinal = calcTargetRotation(target.fIdx, finals.length, rotFinal);
+            rotTone = calcTargetRotation(target.tIdx, tones.length, rotTone);
+
+            document.getElementById('wheel-initial').style.transform = `rotate(${rotInitial}deg)`;
+            
+            setTimeout(() => {
+                document.getElementById('wheel-final').style.transform = `rotate(${rotFinal}deg)`;
+            }, 200);
+
+            setTimeout(() => {
+                document.getElementById('wheel-tone').style.transform = `rotate(${rotTone}deg)`;
+            }, 400);
+
+            setTimeout(() => {
+                showResult(target.val.i, target.val.f, target.val.t);
+                btn.style.pointerEvents = 'auto';
+                btn.innerText = '開始';
+            }, 4400);
+        }
+
+        function showResult(i, f, t) {
+            document.getElementById('res-initial').innerText = i;
+            document.getElementById('res-final').innerText = f;
+            document.getElementById('res-tone').innerText = t.display;
+
+            const toneMark = t.display.trim(); 
+            let fullText = `${i}${f}${toneMark}`;
+            document.getElementById('res-text').innerText = `拼音結果：${fullText}`;
+            
+            const boxes = document.querySelectorAll('.result-box');
+            boxes.forEach(box => {
+                box.style.transform = 'scale(1.1)';
+                setTimeout(() => box.style.transform = 'scale(1)', 200);
+            });
+        }
+
+        init();
+
+    </script>
+</body>
+</html>
