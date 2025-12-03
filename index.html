@@ -555,6 +555,14 @@
                 setTimeout(() => box.style.transform = 'scale(1)', 200);
             });
         }
+        
+        // 嘗試獲取最佳的中文語音
+        function getChineseVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            // 優先找台灣中文 -> 其次找任何中文 -> 否則回傳 null (使用預設)
+            return voices.find(v => v.lang === 'zh-TW') || 
+                   voices.find(v => v.lang.startsWith('zh')) || null;
+        }
 
         function speakResult() {
             if (!currentSpeechText) return;
@@ -564,10 +572,22 @@
 
             const u = new SpeechSynthesisUtterance(currentSpeechText);
             u.lang = 'zh-TW'; // 設定為台灣中文
+            
+            // 嘗試設定具體的語音包
+            const chineseVoice = getChineseVoice();
+            if (chineseVoice) {
+                u.voice = chineseVoice;
+            }
+            
             u.rate = 0.5; // 速度調慢至 0.5 (原本是 0.8)
             u.volume = 1; // 音量設定為最大 1
             window.speechSynthesis.speak(u);
         }
+        
+        // 確保語音列表載入
+        window.speechSynthesis.onvoiceschanged = () => {
+            console.log("Voices loaded");
+        };
 
         // 初始化
         init();
