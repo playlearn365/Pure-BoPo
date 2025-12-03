@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>注音轉盤遊戲-嚴格字典版</title>
+    <title>注音轉盤遊戲-穩定修復版</title>
     <style>
         :root {
             --primary-color: #FF9AA2;
@@ -210,22 +210,27 @@
             font-weight: bold;
         }
 
-        /* 新增：朗讀按鈕樣式 */
+        /* 朗讀按鈕樣式 */
         .speak-btn {
             margin-top: 15px;
-            padding: 8px 24px;
+            padding: 10px 28px;
             background-color: #4ECDC4;
             color: white;
             border: none;
             border-radius: 25px;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             transition: all 0.2s;
-            display: none; /* 預設隱藏，有結果才顯示 */
+            display: none; 
             align-items: center;
-            gap: 5px;
+            gap: 8px;
+            /* 防止雙擊選取 */
+            user-select: none;
+            -webkit-user-select: none;
+            /* 增加點擊區域 */
+            touch-action: manipulation;
         }
 
         .speak-btn:hover {
@@ -252,7 +257,7 @@
 </head>
 <body>
 
-    <h1>注音轉盤遊戲-嚴格字典版</h1>
+    <h1>注音轉盤遊戲</h1>
 
     <div class="game-container">
         <div class="pointer"></div>
@@ -274,324 +279,243 @@
             <div class="result-box box-tone" id="res-tone">?</div>
         </div>
         <div class="full-sound" id="res-text">準備開始...</div>
-        <!-- 新增：朗讀按鈕 -->
-        <button class="speak-btn" onclick="speakResult()">🔊 聽發音</button>
+        <!-- 朗讀按鈕 -->
+        <button class="speak-btn" onclick="safeSpeakResult()">🔊 聽發音</button>
     </div>
 
     <script>
-        const initials = [
-            'ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ',
-            'ㄐ','ㄑ','ㄒ','ㄓ','ㄔ','ㄕ','ㄖ','ㄗ','ㄘ','ㄙ'
-        ];
-        
-        const finals = [
-            'ㄚ','ㄛ','ㄜ','ㄝ','ㄞ','ㄟ','ㄠ','ㄡ','ㄢ','ㄣ','ㄤ','ㄥ','ㄦ',
-            'ㄧ','ㄨ','ㄩ'
-        ];
-        
-        // 0:一聲, 1:二聲, 2:三聲, 3:四聲
-        const tones = [
-            { label: ' ', name: '一聲', display: ' ' },
-            { label: 'ˊ', name: '二聲', display: 'ˊ' },
-            { label: 'ˇ', name: '三聲', display: 'ˇ' },
-            { label: 'ˋ', name: '四聲', display: 'ˋ' }
-        ];
-
-        // === 超級嚴格資料庫 (White List) ===
-        // 格式: '聲母韻母': [合法聲調index...]
-        // 0:一聲, 1:二聲, 2:三聲, 3:四聲
-        // 修正: 移除了索引為 4 (輕聲) 的錯誤資料
-        const toneDatabase = {
-            // ㄅ (B)
-            'ㄅㄚ': [0, 1, 2, 3], 'ㄅㄛ': [0, 1, 2, 3], 'ㄅㄞ': [0, 1, 2, 3], 'ㄅㄟ': [0, 2, 3], 
-            'ㄅㄠ': [0, 2, 3], 'ㄅㄢ': [0, 2, 3], 'ㄅㄣ': [0, 2, 3], 'ㄅㄤ': [0, 2, 3], 'ㄅㄥ': [0, 2, 3],
-            'ㄅㄧ': [0, 1, 2, 3], 'ㄅㄨ': [0, 2, 3],
-            // ㄆ (P)
-            'ㄆㄚ': [0, 1, 3], 'ㄆㄛ': [0, 1, 2, 3], 'ㄆㄞ': [0, 1, 2, 3], 'ㄆㄟ': [0, 1, 2, 3], 
-            'ㄆㄠ': [0, 1, 3], 'ㄆㄡ': [0, 3], 'ㄆㄢ': [0, 1, 2, 3], 'ㄆㄣ': [0, 1, 3], 
-            'ㄆㄤ': [0, 1, 2], 'ㄆㄥ': [0, 1, 2, 3], 'ㄆㄧ': [0, 1, 2, 3], 'ㄆㄨ': [0, 1, 2, 3],
-            // ㄇ (M)
-            'ㄇㄚ': [0, 1, 2, 3], 'ㄇㄛ': [0, 1, 2, 3], 'ㄇㄜ': [0], 
-            'ㄇㄞ': [1, 2, 3], 'ㄇㄟ': [1, 2, 3], 'ㄇㄠ': [0, 1, 2, 3], 'ㄇㄡ': [1, 2, 3], 
-            'ㄇㄢ': [1, 2, 3], 'ㄇㄣ': [1, 3], 'ㄇㄤ': [1, 2], 'ㄇㄥ': [0, 1, 2, 3], 
-            'ㄇㄧ': [0, 1, 2, 3], 'ㄇㄨ': [0, 2, 3],
-            // ㄈ (F)
-            'ㄈㄚ': [0, 1, 2, 3], 'ㄈㄛ': [1], 
-            'ㄈㄟ': [0, 1, 2, 3], 'ㄈㄡ': [2, 3], 
-            'ㄈㄢ': [0, 1, 2, 3], 'ㄈㄣ': [0, 1, 2, 3], 'ㄈㄤ': [0, 1, 2, 3], 'ㄈㄥ': [0, 1, 2, 3], 
-            'ㄈㄨ': [0, 1, 2, 3],
-            // ㄉ (D)
-            'ㄉㄚ': [0, 1, 2, 3], 'ㄉㄜ': [1], 
-            'ㄉㄞ': [0, 2, 3], 'ㄉㄠ': [0, 2, 3], 'ㄉㄡ': [0, 2, 3], 
-            'ㄉㄢ': [0, 2, 3], 'ㄉㄣ': [3], 
-            'ㄉㄤ': [0, 2, 3], 'ㄉㄥ': [0, 2, 3], 'ㄉㄧ': [0, 1, 2, 3], 'ㄉㄨ': [0, 1, 2, 3],
-            // ㄊ (T)
-            'ㄊㄚ': [0, 2, 3], 'ㄊㄜ': [3], 
-            'ㄊㄞ': [0, 1, 2, 3], 'ㄊㄠ': [0, 1, 2, 3], 'ㄊㄡ': [0, 1, 2, 3], 
-            'ㄊㄢ': [0, 1, 2, 3], 'ㄊㄤ': [0, 1, 2, 3], 'ㄊㄥ': [0, 1, 2], 
-            'ㄊㄧ': [0, 1, 2, 3], 'ㄊㄨ': [0, 1, 2, 3],
-            // ㄋ (N)
-            'ㄋㄚ': [1, 2, 3], 'ㄋㄜ': [3], 
-            'ㄋㄞ': [2, 3], 'ㄋㄟ': [2, 3], 'ㄋㄠ': [1, 2, 3], 'ㄋㄡ': [3], 
-            'ㄋㄢ': [0, 1, 2, 3], 'ㄋㄣ': [3], 'ㄋㄤ': [1, 2, 3], 'ㄋㄥ': [1, 2], 
-            'ㄋㄧ': [0, 1, 2, 3], 'ㄋㄨ': [1, 2, 3], 'ㄋㄩ': [2, 3],
-            // ㄌ (L)
-            'ㄌㄚ': [0, 1, 2, 3], 'ㄌㄛ': [1], // 修正: 移除 4
-            'ㄌㄜ': [3], 
-            'ㄌㄞ': [1, 3], 'ㄌㄟ': [1, 2, 3], 'ㄌㄠ': [0, 1, 2, 3], 'ㄌㄡ': [0, 1, 2, 3], 
-            'ㄌㄢ': [1, 2, 3], 'ㄌㄤ': [1, 2, 3], 'ㄌㄥ': [0, 1, 3], 
-            'ㄌㄧ': [0, 1, 2, 3], 'ㄌㄨ': [0, 1, 2, 3], 'ㄌㄩ': [1, 2, 3],
-            // ㄍ (G)
-            'ㄍㄚ': [0, 1, 3], 'ㄍㄜ': [0, 1, 2, 3], 'ㄍㄞ': [0, 2, 3], 'ㄍㄟ': [2], 
-            'ㄍㄠ': [0, 2, 3], 'ㄍㄡ': [0, 3], 'ㄍㄢ': [0, 2, 3], 'ㄍㄣ': [0, 2, 3], 
-            'ㄍㄤ': [0, 2, 3], 'ㄍㄥ': [0, 2, 3], 'ㄍㄨ': [0, 2, 3],
-            // ㄎ (K)
-            'ㄎㄚ': [0, 2, 3], 'ㄎㄜ': [0, 1, 2, 3], 'ㄎㄞ': [0, 2, 3], 'ㄎㄠ': [0, 2, 3], 
-            'ㄎㄡ': [0, 3], 'ㄎㄢ': [0, 1, 2, 3], 'ㄎㄣ': [0, 2, 3], 'ㄎㄤ': [0, 1, 2, 3], 
-            'ㄎㄥ': [0, 3], 'ㄎㄨ': [0, 2, 3],
-            // ㄏ (H)
-            'ㄏㄚ': [0, 1, 2, 3], 'ㄏㄜ': [0, 1, 2, 3], 'ㄏㄞ': [0, 1, 2, 3], 'ㄏㄟ': [0], 
-            'ㄏㄠ': [0, 1, 2, 3], 'ㄏㄡ': [0, 2, 3], 'ㄏㄢ': [0, 1, 2, 3], 'ㄏㄣ': [0, 2, 3], 
-            'ㄏㄤ': [0, 1, 2, 3], 'ㄏㄥ': [0, 1, 2, 3], 'ㄏㄨ': [0, 1, 2, 3],
-            // ㄐ (J)
-            'ㄐㄧ': [0, 1, 2, 3], 'ㄐㄩ': [0, 1, 2, 3],
-            // ㄑ (Q)
-            'ㄑㄧ': [0, 1, 2, 3], 'ㄑㄩ': [0, 1, 2, 3],
-            // ㄒ (X)
-            'ㄒㄧ': [0, 1, 2, 3], 'ㄒㄩ': [0, 1, 2, 3],
-            // ㄓ (Zh)
-            'ㄓㄚ': [0, 1, 2, 3], 'ㄓㄜ': [0, 1, 2, 3], 'ㄓㄞ': [0, 1, 2, 3], 
-            'ㄓㄠ': [0, 1, 2, 3], 'ㄓㄡ': [0, 1, 2, 3], 'ㄓㄢ': [0, 2, 3], 'ㄓㄣ': [0, 2, 3], 
-            'ㄓㄤ': [0, 2, 3], 'ㄓㄥ': [0, 2, 3], 'ㄓㄨ': [0, 1, 2, 3],
-            // ㄔ (Ch)
-            'ㄔㄚ': [0, 1, 2, 3], 'ㄔㄜ': [0, 2, 3], 'ㄔㄞ': [0, 1, 3], 
-            'ㄔㄠ': [0, 1, 2, 3], 'ㄔㄡ': [0, 1, 2, 3], 'ㄔㄢ': [0, 1, 2, 3], 'ㄔㄣ': [0, 1, 2, 3], 
-            'ㄔㄤ': [0, 1, 2, 3], 'ㄔㄥ': [0, 1, 2, 3], 'ㄔㄨ': [0, 1, 2, 3],
-            // ㄕ (Sh)
-            'ㄕㄚ': [0, 2, 3], 'ㄕㄜ': [0, 1, 2, 3], 'ㄕㄞ': [0, 3], 
-            'ㄕㄠ': [0, 1, 2, 3], 'ㄕㄡ': [0, 2, 3], 'ㄕㄢ': [0, 2, 3], 'ㄕㄣ': [0, 1, 2, 3], 
-            'ㄕㄤ': [0, 2, 3], 'ㄕㄥ': [0, 1, 2, 3], 'ㄕㄨ': [0, 1, 2, 3],
-            // ㄖ (R)
-            'ㄖㄜ': [3], 'ㄖㄠ': [1, 2, 3], 'ㄖㄡ': [1, 3], 'ㄖㄢ': [1, 2, 3], 
-            'ㄖㄣ': [1, 2, 3], 'ㄖㄤ': [1, 2, 3], 'ㄖㄥ': [0, 1], 'ㄖㄨ': [1, 2, 3],
-            // ㄗ (Z)
-            'ㄗㄚ': [0, 1, 2], 'ㄗㄜ': [0, 1, 2, 3], 'ㄗㄞ': [0, 3], 
-            'ㄗㄠ': [0, 2, 3], 'ㄗㄡ': [0, 2, 3], 'ㄗㄢ': [0, 1, 3], 'ㄗㄣ': [2], 
-            'ㄗㄤ': [0, 1, 3], 'ㄗㄥ': [0, 3], 'ㄗㄨ': [0, 1, 2, 3],
-            // ㄘ (C)
-            'ㄘㄚ': [0, 1], 'ㄘㄜ': [3], 'ㄘㄞ': [0, 1, 2, 3], 
-            'ㄘㄠ': [0, 2, 3], 'ㄘㄡ': [0, 3], 'ㄘㄢ': [0, 1, 2, 3], 'ㄘㄣ': [0, 1], 
-            'ㄘㄤ': [0, 1, 2], 'ㄘㄥ': [0, 1, 2, 3], 'ㄘㄨ': [0, 1, 2, 3],
-            // ㄙ (S)
-            'ㄙㄚ': [0, 2, 3], 'ㄙㄜ': [3], 'ㄙㄞ': [0, 3], 
-            'ㄙㄠ': [0, 2, 3], 'ㄙㄡ': [0, 2, 3], 'ㄙㄢ': [0, 2, 3], 'ㄙㄣ': [0], 
-            'ㄙㄤ': [0, 2, 3], 'ㄙㄥ': [0], 'ㄙㄨ': [0, 1, 2, 3]
-        };
-
-        const colors = [
-            '#FF9AA2', '#B5EAD7', '#FFDAC1', '#90CCF4', '#F3D250', 
-            '#C7CEEA', '#FAB1A0', '#81ECEC', '#FFB7B2', '#E2F0CB', '#957DAD'
-        ];
-
-        let rotInitial = 0;
-        let rotFinal = 0;
-        let rotTone = 0;
-        let currentSpeechText = '';
-
-        // 根據 toneDatabase 自動產生每一個聲母的合法韻母列表
-        // 這樣就不需要手動維護 validRules 了
-        const validMap = {};
-        
-        // 初始化 validMap
-        initials.forEach(i => validMap[i] = []);
-        
-        // 遍歷資料庫填入
-        for (let key in toneDatabase) {
-            let i = '';
-            let f = '';
-            // 拆解 key (例如 "ㄅㄚ" -> "ㄅ", "ㄚ")
-            // 聲母有 1 個字，韻母有 1 個字
-            // 注意：這裡假設聲母都是單字
-            i = key.substring(0, 1);
-            f = key.substring(1);
-            
-            if (validMap[i] && !validMap[i].includes(f)) {
-                validMap[i].push(f);
-            }
-        }
-
-        function createWheel(id, items, radius) {
-            const wheel = document.getElementById(id);
-            const count = items.length;
-            const anglePerItem = 360 / count;
-            
-            let gradientStr = '';
-            items.forEach((item, index) => {
-                const startDeg = index * anglePerItem;
-                const endDeg = (index + 1) * anglePerItem;
-                const color = colors[index % colors.length];
-                gradientStr += `${color} ${startDeg}deg ${endDeg}deg,`;
+        // 將所有邏輯包在 DOMContentLoaded 確保畫面元素存在後才執行
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const initials = [
+                    'ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ',
+                    'ㄐ','ㄑ','ㄒ','ㄓ','ㄔ','ㄕ','ㄖ','ㄗ','ㄘ','ㄙ'
+                ];
                 
-                const el = document.createElement('div');
-                el.className = 'wheel-item';
-                const itemCenterDeg = startDeg + (anglePerItem / 2);
+                const finals = [
+                    'ㄚ','ㄛ','ㄜ','ㄝ','ㄞ','ㄟ','ㄠ','ㄡ','ㄢ','ㄣ','ㄤ','ㄥ','ㄦ',
+                    'ㄧ','ㄨ','ㄩ'
+                ];
                 
-                el.style.transform = `rotate(${itemCenterDeg}deg)`;
-                
-                let displayText = typeof item === 'object' ? item.display : item;
-                el.innerHTML = displayText;
+                const tones = [
+                    { label: ' ', name: '一聲', display: ' ' },
+                    { label: 'ˊ', name: '二聲', display: 'ˊ' },
+                    { label: 'ˇ', name: '三聲', display: 'ˇ' },
+                    { label: 'ˋ', name: '四聲', display: 'ˋ' }
+                ];
 
-                wheel.appendChild(el);
-            });
-            wheel.style.background = `conic-gradient(${gradientStr.slice(0, -1)})`;
-        }
-
-        function init() {
-            createWheel('wheel-initial', initials, 170);
-            createWheel('wheel-final', finals, 120);
-            createWheel('wheel-tone', tones, 70);
-        }
-
-        function getRandomValidCombo() {
-            let safetyCounter = 0;
-            while(safetyCounter < 500) { 
-                safetyCounter++;
-                
-                const randomInitial = initials[Math.floor(Math.random() * initials.length)];
-                
-                const allowedFinals = validMap[randomInitial];
-                
-                if (!allowedFinals || allowedFinals.length === 0) continue;
-
-                const randomFinalChar = allowedFinals[Math.floor(Math.random() * allowedFinals.length)];
-                
-                const key = randomInitial + randomFinalChar;
-                const allowedTonesIndices = toneDatabase[key];
-                
-                if (!allowedTonesIndices || allowedTonesIndices.length === 0) continue;
-                
-                // === 安全過濾：確保索引不超過 tones 陣列長度 ===
-                const validTonesIndices = allowedTonesIndices.filter(idx => idx >= 0 && idx < tones.length);
-                if (validTonesIndices.length === 0) continue;
-                
-                const randomToneIndex = validTonesIndices[Math.floor(Math.random() * validTonesIndices.length)];
-                const randomTone = tones[randomToneIndex];
-
-                if (!randomTone) continue; // Double check
-
-                return {
-                    iIdx: initials.indexOf(randomInitial),
-                    fIdx: finals.indexOf(randomFinalChar),
-                    tIdx: randomToneIndex, 
-                    val: { i: randomInitial, f: randomFinalChar, t: randomTone }
+                // === 嚴格資料庫 (White List) ===
+                const toneDatabase = {
+                    'ㄅㄚ': [0, 1, 2, 3], 'ㄅㄛ': [0, 1, 2, 3], 'ㄅㄞ': [0, 1, 2, 3], 'ㄅㄟ': [0, 2, 3], 
+                    'ㄅㄠ': [0, 2, 3], 'ㄅㄢ': [0, 2, 3], 'ㄅㄣ': [0, 2, 3], 'ㄅㄤ': [0, 2, 3], 'ㄅㄥ': [0, 2, 3],
+                    'ㄅㄧ': [0, 1, 2, 3], 'ㄅㄨ': [0, 2, 3],
+                    'ㄆㄚ': [0, 1, 3], 'ㄆㄛ': [0, 1, 2, 3], 'ㄆㄞ': [0, 1, 2, 3], 'ㄆㄟ': [0, 1, 2, 3], 
+                    'ㄆㄠ': [0, 1, 3], 'ㄆㄡ': [0, 3], 'ㄆㄢ': [0, 1, 2, 3], 'ㄆㄣ': [0, 1, 3], 
+                    'ㄆㄤ': [0, 1, 2], 'ㄆㄥ': [0, 1, 2, 3], 'ㄆㄧ': [0, 1, 2, 3], 'ㄆㄨ': [0, 1, 2, 3],
+                    'ㄇㄚ': [0, 1, 2, 3], 'ㄇㄛ': [0, 1, 2, 3], 'ㄇㄜ': [0], 
+                    'ㄇㄞ': [1, 2, 3], 'ㄇㄟ': [1, 2, 3], 'ㄇㄠ': [0, 1, 2, 3], 'ㄇㄡ': [1, 2, 3], 
+                    'ㄇㄢ': [1, 2, 3], 'ㄇㄣ': [1, 3], 'ㄇㄤ': [1, 2], 'ㄇㄥ': [0, 1, 2, 3], 
+                    'ㄇㄧ': [0, 1, 2, 3], 'ㄇㄨ': [0, 2, 3],
+                    'ㄈㄚ': [0, 1, 2, 3], 'ㄈㄛ': [1], 'ㄈㄟ': [0, 1, 2, 3], 'ㄈㄡ': [2, 3], 
+                    'ㄈㄢ': [0, 1, 2, 3], 'ㄈㄣ': [0, 1, 2, 3], 'ㄈㄤ': [0, 1, 2, 3], 'ㄈㄥ': [0, 1, 2, 3], 
+                    'ㄈㄨ': [0, 1, 2, 3],
+                    'ㄉㄚ': [0, 1, 2, 3], 'ㄉㄜ': [1], 'ㄉㄞ': [0, 2, 3], 'ㄉㄠ': [0, 2, 3], 'ㄉㄡ': [0, 2, 3], 
+                    'ㄉㄢ': [0, 2, 3], 'ㄉㄣ': [3], 'ㄉㄤ': [0, 2, 3], 'ㄉㄥ': [0, 2, 3], 'ㄉㄧ': [0, 1, 2, 3], 'ㄉㄨ': [0, 1, 2, 3],
+                    'ㄊㄚ': [0, 2, 3], 'ㄊㄜ': [3], 'ㄊㄞ': [0, 1, 2, 3], 'ㄊㄠ': [0, 1, 2, 3], 'ㄊㄡ': [0, 1, 2, 3], 
+                    'ㄊㄢ': [0, 1, 2, 3], 'ㄊㄤ': [0, 1, 2, 3], 'ㄊㄥ': [0, 1, 2], 'ㄊㄧ': [0, 1, 2, 3], 'ㄊㄨ': [0, 1, 2, 3],
+                    'ㄋㄚ': [1, 2, 3], 'ㄋㄜ': [3], 'ㄋㄞ': [2, 3], 'ㄋㄟ': [2, 3], 'ㄋㄠ': [1, 2, 3], 'ㄋㄡ': [3], 
+                    'ㄋㄢ': [0, 1, 2, 3], 'ㄋㄣ': [3], 'ㄋㄤ': [1, 2, 3], 'ㄋㄥ': [1, 2], 'ㄋㄧ': [0, 1, 2, 3], 'ㄋㄨ': [1, 2, 3], 'ㄋㄩ': [2, 3],
+                    'ㄌㄚ': [0, 1, 2, 3], 'ㄌㄛ': [1], 'ㄌㄜ': [3], 'ㄌㄞ': [1, 3], 'ㄌㄟ': [1, 2, 3], 'ㄌㄠ': [0, 1, 2, 3], 'ㄌㄡ': [0, 1, 2, 3], 
+                    'ㄌㄢ': [1, 2, 3], 'ㄌㄤ': [1, 2, 3], 'ㄌㄥ': [0, 1, 3], 'ㄌㄧ': [0, 1, 2, 3], 'ㄌㄨ': [0, 1, 2, 3], 'ㄌㄩ': [1, 2, 3],
+                    'ㄍㄚ': [0, 1, 3], 'ㄍㄜ': [0, 1, 2, 3], 'ㄍㄞ': [0, 2, 3], 'ㄍㄟ': [2], 'ㄍㄠ': [0, 2, 3], 'ㄍㄡ': [0, 3], 
+                    'ㄍㄢ': [0, 2, 3], 'ㄍㄣ': [0, 2, 3], 'ㄍㄤ': [0, 2, 3], 'ㄍㄥ': [0, 2, 3], 'ㄍㄨ': [0, 2, 3],
+                    'ㄎㄚ': [0, 2, 3], 'ㄎㄜ': [0, 1, 2, 3], 'ㄎㄞ': [0, 2, 3], 'ㄎㄠ': [0, 2, 3], 'ㄎㄡ': [0, 3], 
+                    'ㄎㄢ': [0, 1, 2, 3], 'ㄎㄣ': [0, 2, 3], 'ㄎㄤ': [0, 1, 2, 3], 'ㄎㄥ': [0, 3], 'ㄎㄨ': [0, 2, 3],
+                    'ㄏㄚ': [0, 1, 2, 3], 'ㄏㄜ': [0, 1, 2, 3], 'ㄏㄞ': [0, 1, 2, 3], 'ㄏㄟ': [0], 'ㄏㄠ': [0, 1, 2, 3], 'ㄏㄡ': [0, 2, 3], 
+                    'ㄏㄢ': [0, 1, 2, 3], 'ㄏㄣ': [0, 2, 3], 'ㄏㄤ': [0, 1, 2, 3], 'ㄏㄥ': [0, 1, 2, 3], 'ㄏㄨ': [0, 1, 2, 3],
+                    'ㄐㄧ': [0, 1, 2, 3], 'ㄐㄩ': [0, 1, 2, 3],
+                    'ㄑㄧ': [0, 1, 2, 3], 'ㄑㄩ': [0, 1, 2, 3],
+                    'ㄒㄧ': [0, 1, 2, 3], 'ㄒㄩ': [0, 1, 2, 3],
+                    'ㄓㄚ': [0, 1, 2, 3], 'ㄓㄜ': [0, 1, 2, 3], 'ㄓㄞ': [0, 1, 2, 3], 'ㄓㄠ': [0, 1, 2, 3], 'ㄓㄡ': [0, 1, 2, 3], 
+                    'ㄓㄢ': [0, 2, 3], 'ㄓㄣ': [0, 2, 3], 'ㄓㄤ': [0, 2, 3], 'ㄓㄥ': [0, 2, 3], 'ㄓㄨ': [0, 1, 2, 3],
+                    'ㄔㄚ': [0, 1, 2, 3], 'ㄔㄜ': [0, 2, 3], 'ㄔㄞ': [0, 1, 3], 'ㄔㄠ': [0, 1, 2, 3], 'ㄔㄡ': [0, 1, 2, 3], 
+                    'ㄔㄢ': [0, 1, 2, 3], 'ㄔㄣ': [0, 1, 2, 3], 'ㄔㄤ': [0, 1, 2, 3], 'ㄔㄥ': [0, 1, 2, 3], 'ㄔㄨ': [0, 1, 2, 3],
+                    'ㄕㄚ': [0, 2, 3], 'ㄕㄜ': [0, 1, 2, 3], 'ㄕㄞ': [0, 3], 'ㄕㄠ': [0, 1, 2, 3], 'ㄕㄡ': [0, 2, 3], 
+                    'ㄕㄢ': [0, 2, 3], 'ㄕㄣ': [0, 1, 2, 3], 'ㄕㄤ': [0, 2, 3], 'ㄕㄥ': [0, 1, 2, 3], 'ㄕㄨ': [0, 1, 2, 3],
+                    'ㄖㄜ': [3], 'ㄖㄠ': [1, 2, 3], 'ㄖㄡ': [1, 3], 'ㄖㄢ': [1, 2, 3], 'ㄖㄣ': [1, 2, 3], 
+                    'ㄖㄤ': [1, 2, 3], 'ㄖㄥ': [0, 1], 'ㄖㄨ': [1, 2, 3],
+                    'ㄗㄚ': [0, 1, 2], 'ㄗㄜ': [0, 1, 2, 3], 'ㄗㄞ': [0, 3], 'ㄗㄠ': [0, 2, 3], 'ㄗㄡ': [0, 2, 3], 
+                    'ㄗㄢ': [0, 1, 3], 'ㄗㄣ': [2], 'ㄗㄤ': [0, 1, 3], 'ㄗㄥ': [0, 3], 'ㄗㄨ': [0, 1, 2, 3],
+                    'ㄘㄚ': [0, 1], 'ㄘㄜ': [3], 'ㄘㄞ': [0, 1, 2, 3], 'ㄘㄠ': [0, 2, 3], 'ㄘㄡ': [0, 3], 
+                    'ㄘㄢ': [0, 1, 2, 3], 'ㄘㄣ': [0, 1], 'ㄘㄤ': [0, 1, 2], 'ㄘㄥ': [0, 1, 2, 3], 'ㄘㄨ': [0, 1, 2, 3],
+                    'ㄙㄚ': [0, 2, 3], 'ㄙㄜ': [3], 'ㄙㄞ': [0, 3], 'ㄙㄠ': [0, 2, 3], 'ㄙㄡ': [0, 2, 3], 
+                    'ㄙㄢ': [0, 2, 3], 'ㄙㄣ': [0], 'ㄙㄤ': [0, 2, 3], 'ㄙㄥ': [0], 'ㄙㄨ': [0, 1, 2, 3]
                 };
-            }
-            
-            // Fallback (以防萬一)
-            return { 
-                iIdx: 0, fIdx: 0, tIdx: 0, 
-                val: { i: 'ㄅ', f: 'ㄚ', t: tones[0] } 
-            };
-        }
 
-        function spinWheel() {
-            const btn = document.querySelector('.center-btn');
-            btn.style.pointerEvents = 'none';
-            btn.innerText = '...';
-            // 旋轉時隱藏發音按鈕
-            document.querySelector('.speak-btn').style.display = 'none';
+                const colors = [
+                    '#FF9AA2', '#B5EAD7', '#FFDAC1', '#90CCF4', '#F3D250', 
+                    '#C7CEEA', '#FAB1A0', '#81ECEC', '#FFB7B2', '#E2F0CB', '#957DAD'
+                ];
 
-            const target = getRandomValidCombo();
+                let rotInitial = 0;
+                let rotFinal = 0;
+                let rotTone = 0;
+                let currentSpeechText = '';
 
-            const calcTargetRotation = (idx, count, currentRot) => {
-                const angleStep = 360 / count;
-                const itemCenter = (idx * angleStep) + (angleStep / 2);
-                const degreesToRotate = 360 - itemCenter;
-                const currentFullSpins = Math.floor(currentRot / 360);
-                const targetFullSpins = currentFullSpins + 5; 
-                return (targetFullSpins * 360) + degreesToRotate;
-            };
-
-            rotInitial = calcTargetRotation(target.iIdx, initials.length, rotInitial);
-            rotFinal = calcTargetRotation(target.fIdx, finals.length, rotFinal);
-            rotTone = calcTargetRotation(target.tIdx, tones.length, rotTone);
-
-            document.getElementById('wheel-initial').style.transform = `rotate(${rotInitial}deg)`;
-            
-            setTimeout(() => {
-                document.getElementById('wheel-final').style.transform = `rotate(${rotFinal}deg)`;
-            }, 200);
-
-            setTimeout(() => {
-                document.getElementById('wheel-tone').style.transform = `rotate(${rotTone}deg)`;
-            }, 400);
-
-            setTimeout(() => {
-                showResult(target.val.i, target.val.f, target.val.t);
-                btn.style.pointerEvents = 'auto';
-                btn.innerText = '開始';
-            }, 4400);
-        }
-
-        function showResult(i, f, t) {
-            document.getElementById('res-initial').innerText = i;
-            document.getElementById('res-final').innerText = f;
-            if (t) {
-                document.getElementById('res-tone').innerText = t.display;
-                const toneMark = t.display.trim(); 
-                let fullText = `${i}${f}${toneMark}`;
-                document.getElementById('res-text').innerText = `拼音結果：${fullText}`;
+                // 產生 validMap
+                const validMap = {};
+                initials.forEach(i => validMap[i] = []);
                 
-                // 儲存文字並顯示發音按鈕
-                currentSpeechText = fullText;
-                document.querySelector('.speak-btn').style.display = 'inline-flex';
-            } else {
-                 console.error("Tone is undefined", i, f);
+                for (let key in toneDatabase) {
+                    let i = key.substring(0, 1);
+                    let f = key.substring(1);
+                    if (validMap[i] && !validMap[i].includes(f)) {
+                        validMap[i].push(f);
+                    }
+                }
+
+                function createWheel(id, items) {
+                    const wheel = document.getElementById(id);
+                    if(!wheel) return; // 安全檢查
+                    const count = items.length;
+                    const anglePerItem = 360 / count;
+                    
+                    let gradientStr = '';
+                    items.forEach((item, index) => {
+                        const startDeg = index * anglePerItem;
+                        const endDeg = (index + 1) * anglePerItem;
+                        const color = colors[index % colors.length];
+                        gradientStr += `${color} ${startDeg}deg ${endDeg}deg,`;
+                        
+                        const el = document.createElement('div');
+                        el.className = 'wheel-item';
+                        const itemCenterDeg = startDeg + (anglePerItem / 2);
+                        
+                        el.style.transform = `rotate(${itemCenterDeg}deg)`;
+                        
+                        let displayText = typeof item === 'object' ? item.display : item;
+                        el.innerHTML = displayText;
+
+                        wheel.appendChild(el);
+                    });
+                    wheel.style.background = `conic-gradient(${gradientStr.slice(0, -1)})`;
+                }
+
+                // 綁定到 window 以便 onclick 調用
+                window.spinWheel = function() {
+                    const btn = document.querySelector('.center-btn');
+                    btn.style.pointerEvents = 'none';
+                    btn.innerText = '...';
+                    document.querySelector('.speak-btn').style.display = 'none';
+
+                    const target = getRandomValidCombo();
+
+                    const calcTargetRotation = (idx, count, currentRot) => {
+                        const angleStep = 360 / count;
+                        const itemCenter = (idx * angleStep) + (angleStep / 2);
+                        const degreesToRotate = 360 - itemCenter;
+                        const currentFullSpins = Math.floor(currentRot / 360);
+                        const targetFullSpins = currentFullSpins + 5; 
+                        return (targetFullSpins * 360) + degreesToRotate;
+                    };
+
+                    rotInitial = calcTargetRotation(target.iIdx, initials.length, rotInitial);
+                    rotFinal = calcTargetRotation(target.fIdx, finals.length, rotFinal);
+                    rotTone = calcTargetRotation(target.tIdx, tones.length, rotTone);
+
+                    document.getElementById('wheel-initial').style.transform = `rotate(${rotInitial}deg)`;
+                    
+                    setTimeout(() => {
+                        document.getElementById('wheel-final').style.transform = `rotate(${rotFinal}deg)`;
+                    }, 200);
+
+                    setTimeout(() => {
+                        document.getElementById('wheel-tone').style.transform = `rotate(${rotTone}deg)`;
+                    }, 400);
+
+                    setTimeout(() => {
+                        showResult(target.val.i, target.val.f, target.val.t);
+                        btn.style.pointerEvents = 'auto';
+                        btn.innerText = '開始';
+                    }, 4400);
+                }
+
+                window.safeSpeakResult = function() {
+                    if (!currentSpeechText) return;
+                    
+                    // 安全檢查：瀏覽器是否支援
+                    if (!('speechSynthesis' in window)) {
+                        alert("您的裝置瀏覽器不支援發音功能");
+                        return;
+                    }
+
+                    try {
+                        window.speechSynthesis.cancel();
+                        const u = new SpeechSynthesisUtterance(currentSpeechText);
+                        u.lang = 'zh-TW'; // 最標準的設定
+                        u.rate = 0.5;
+                        u.volume = 1;
+                        // 不指定 voice 物件，讓 OS 決定，以提高相容性
+                        window.speechSynthesis.speak(u);
+                    } catch (e) {
+                        console.error("Speech error:", e);
+                        alert("發音功能發生錯誤");
+                    }
+                }
+
+                function getRandomValidCombo() {
+                    let safetyCounter = 0;
+                    while(safetyCounter < 500) { 
+                        safetyCounter++;
+                        const randomInitial = initials[Math.floor(Math.random() * initials.length)];
+                        const allowedFinals = validMap[randomInitial];
+                        if (!allowedFinals || allowedFinals.length === 0) continue;
+                        const randomFinalChar = allowedFinals[Math.floor(Math.random() * allowedFinals.length)];
+                        const key = randomInitial + randomFinalChar;
+                        const allowedTonesIndices = toneDatabase[key];
+                        if (!allowedTonesIndices || allowedTonesIndices.length === 0) continue;
+                        const validTonesIndices = allowedTonesIndices.filter(idx => idx >= 0 && idx < tones.length);
+                        if (validTonesIndices.length === 0) continue;
+                        const randomToneIndex = validTonesIndices[Math.floor(Math.random() * validTonesIndices.length)];
+                        const randomTone = tones[randomToneIndex];
+                        return {
+                            iIdx: initials.indexOf(randomInitial),
+                            fIdx: finals.indexOf(randomFinalChar),
+                            tIdx: randomToneIndex, 
+                            val: { i: randomInitial, f: randomFinalChar, t: randomTone }
+                        };
+                    }
+                    return { iIdx: 0, fIdx: 0, tIdx: 0, val: { i: 'ㄅ', f: 'ㄚ', t: tones[0] } };
+                }
+
+                function showResult(i, f, t) {
+                    document.getElementById('res-initial').innerText = i;
+                    document.getElementById('res-final').innerText = f;
+                    if (t) {
+                        document.getElementById('res-tone').innerText = t.display;
+                        const toneMark = t.display.trim(); 
+                        let fullText = `${i}${f}${toneMark}`;
+                        document.getElementById('res-text').innerText = `拼音結果：${fullText}`;
+                        currentSpeechText = fullText;
+                        document.querySelector('.speak-btn').style.display = 'inline-flex';
+                    }
+                    const boxes = document.querySelectorAll('.result-box');
+                    boxes.forEach(box => {
+                        box.style.transform = 'scale(1.1)';
+                        setTimeout(() => box.style.transform = 'scale(1)', 200);
+                    });
+                }
+
+                // 啟動 (確保在 DOMContentLoaded 內執行)
+                createWheel('wheel-initial', initials);
+                createWheel('wheel-final', finals);
+                createWheel('wheel-tone', tones);
+                
+            } catch (err) {
+                console.error("Init Error:", err);
+                // 萬一 JS 崩潰，至少不會一片空白，因為 HTML 結構還在
             }
-
-            const boxes = document.querySelectorAll('.result-box');
-            boxes.forEach(box => {
-                box.style.transform = 'scale(1.1)';
-                setTimeout(() => box.style.transform = 'scale(1)', 200);
-            });
-        }
-        
-        // 嘗試獲取最佳的中文語音
-        function getChineseVoice() {
-            const voices = window.speechSynthesis.getVoices();
-            // 優先找台灣中文 -> 其次找任何中文 -> 否則回傳 null (使用預設)
-            return voices.find(v => v.lang === 'zh-TW') || 
-                   voices.find(v => v.lang.startsWith('zh')) || null;
-        }
-
-        function speakResult() {
-            if (!currentSpeechText) return;
-            
-            // 停止之前的發音
-            window.speechSynthesis.cancel();
-
-            const u = new SpeechSynthesisUtterance(currentSpeechText);
-            u.lang = 'zh-TW'; // 設定為台灣中文
-            
-            // 嘗試設定具體的語音包
-            const chineseVoice = getChineseVoice();
-            if (chineseVoice) {
-                u.voice = chineseVoice;
-            }
-            
-            u.rate = 0.5; // 速度調慢至 0.5 (原本是 0.8)
-            u.volume = 1; // 音量設定為最大 1
-            window.speechSynthesis.speak(u);
-        }
-        
-        // 確保語音列表載入
-        window.speechSynthesis.onvoiceschanged = () => {
-            console.log("Voices loaded");
-        };
-
-        // 初始化
-        init();
-
+        });
     </script>
 </body>
 </html>
