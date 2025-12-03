@@ -163,6 +163,9 @@
             min-width: 280px;
             z-index: 10;
             border: 2px solid #FFF0F5; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .result-labels {
@@ -172,6 +175,7 @@
             color: #888;
             margin-bottom: 8px;
             font-weight: bold;
+            width: 100%;
         }
 
         .result-boxes {
@@ -204,6 +208,35 @@
             color: #666;
             height: 28px;
             font-weight: bold;
+        }
+
+        /* 新增：朗讀按鈕樣式 */
+        .speak-btn {
+            margin-top: 15px;
+            padding: 8px 24px;
+            background-color: #4ECDC4;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+            display: none; /* 預設隱藏，有結果才顯示 */
+            align-items: center;
+            gap: 5px;
+        }
+
+        .speak-btn:hover {
+            background-color: #36b9b0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+
+        .speak-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         @media (max-width: 400px) {
@@ -241,6 +274,8 @@
             <div class="result-box box-tone" id="res-tone">?</div>
         </div>
         <div class="full-sound" id="res-text">準備開始...</div>
+        <!-- 新增：朗讀按鈕 -->
+        <button class="speak-btn" onclick="speakResult()">🔊 聽發音</button>
     </div>
 
     <script>
@@ -361,6 +396,7 @@
         let rotInitial = 0;
         let rotFinal = 0;
         let rotTone = 0;
+        let currentSpeechText = '';
 
         // 根據 toneDatabase 自動產生每一個聲母的合法韻母列表
         // 這樣就不需要手動維護 validRules 了
@@ -462,6 +498,8 @@
             const btn = document.querySelector('.center-btn');
             btn.style.pointerEvents = 'none';
             btn.innerText = '...';
+            // 旋轉時隱藏發音按鈕
+            document.querySelector('.speak-btn').style.display = 'none';
 
             const target = getRandomValidCombo();
 
@@ -503,8 +541,11 @@
                 const toneMark = t.display.trim(); 
                 let fullText = `${i}${f}${toneMark}`;
                 document.getElementById('res-text').innerText = `拼音結果：${fullText}`;
+                
+                // 儲存文字並顯示發音按鈕
+                currentSpeechText = fullText;
+                document.querySelector('.speak-btn').style.display = 'inline-flex';
             } else {
-                 // 錯誤處理 (不應該發生)
                  console.error("Tone is undefined", i, f);
             }
 
@@ -513,6 +554,19 @@
                 box.style.transform = 'scale(1.1)';
                 setTimeout(() => box.style.transform = 'scale(1)', 200);
             });
+        }
+
+        function speakResult() {
+            if (!currentSpeechText) return;
+            
+            // 停止之前的發音
+            window.speechSynthesis.cancel();
+
+            const u = new SpeechSynthesisUtterance(currentSpeechText);
+            u.lang = 'zh-TW'; // 設定為台灣中文
+            u.rate = 0.5; // 速度調慢至 0.5 (原本是 0.8)
+            u.volume = 1; // 音量設定為最大 1
+            window.speechSynthesis.speak(u);
         }
 
         // 初始化
