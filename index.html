@@ -3,579 +3,406 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>注音轉盤遊戲-穩定修復版</title>
-    <!-- ResponsiveVoice TTS (免費版) -->
+    <title>注音轉盤遊戲</title>
     <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
     <style>
-        :root {
-            --primary-color: #FF9AA2;
-            --bg-color: #FFF9F2;
-            --text-color: #333;
-            --wheel-border: #fff;
-        }
-
+        :root { --bg-color: #FFF9F2; --wheel-border: #fff; }
         body {
             font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
             background-color: var(--bg-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            overflow-y: auto; 
-            padding: 20px 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            min-height: 100vh; margin: 0; overflow-y: auto; padding: 20px 0;
         }
-
-        h1 {
-            color: #666;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 0px rgba(0,0,0,0.05);
-            text-align: center;
-            font-weight: 800;
-            letter-spacing: 2px;
-            font-size: 28px;
-        }
-
+        h1 { color: #666; margin-bottom: 20px; text-align: center; font-weight: 800; letter-spacing: 2px; font-size: 28px; }
         .game-container {
-            position: relative;
-            width: 350px;
-            height: 350px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            user-select: none; 
-            -webkit-user-select: none;
+            position: relative; width: 350px; height: 350px;
+            display: flex; justify-content: center; align-items: center;
+            user-select: none; -webkit-user-select: none;
         }
-
         .pointer {
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 15px solid transparent;
-            border-right: 15px solid transparent;
-            border-top: 30px solid #FF6F91;
-            z-index: 100;
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 15px solid transparent; border-right: 15px solid transparent;
+            border-top: 30px solid #FF6F91; z-index: 100;
             filter: drop-shadow(0 3px 3px rgba(0,0,0,0.2));
         }
-
         .wheel {
-            position: absolute;
-            border-radius: 50%;
+            position: absolute; border-radius: 50%;
             transition: transform 4s cubic-bezier(0.1, 0, 0.2, 1);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            background: white;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; background: white;
         }
-
         .wheel-item {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform-origin: 50% 100%;
-            display: flex;
-            justify-content: center;
-            padding-top: 5px;
-            font-weight: bold;
-            color: #333;
-            text-shadow: 1px 1px 0 rgba(255,255,255,0.6);
-            box-sizing: border-box;
-            user-select: none;
+            position: absolute; top: 0; left: 50%; transform-origin: 50% 100%;
+            display: flex; justify-content: center; padding-top: 5px;
+            font-weight: bold; color: #333; text-shadow: 1px 1px 0 rgba(255,255,255,0.6);
+            box-sizing: border-box; user-select: none;
         }
-
-        /* 外層：聲母 */
-        .outer-ring {
-            width: 340px;
-            height: 340px;
-            z-index: 1;
-            font-size: 18px;
-        }
-        .outer-ring .wheel-item {
-            height: 170px;
-            width: 40px;
-            margin-left: -20px;
-        }
-
-        /* 中層：韻母 */
-        .middle-ring {
-            width: 240px;
-            height: 240px;
-            z-index: 2;
-            font-size: 20px;
-            border: 4px solid var(--wheel-border);
-        }
-        .middle-ring .wheel-item {
-            height: 120px;
-            width: 40px;
-            margin-left: -20px;
-            padding-top: 5px;
-        }
-
-        /* 內層：聲調 */
-        .inner-ring {
-            width: 140px;
-            height: 140px;
-            z-index: 3;
-            font-size: 24px;
-            border: 4px solid var(--wheel-border);
-        }
-        .inner-ring .wheel-item {
-            height: 70px;
-            width: 60px;
-            margin-left: -30px;
-            padding-top: 15px;
-        }
-
+        .outer-ring  { width: 340px; height: 340px; z-index: 1; font-size: 18px; }
+        .outer-ring  .wheel-item { height: 170px; width: 40px; margin-left: -20px; }
+        .middle-ring { width: 240px; height: 240px; z-index: 2; font-size: 20px; border: 4px solid var(--wheel-border); }
+        .middle-ring .wheel-item { height: 120px; width: 40px; margin-left: -20px; padding-top: 5px; }
+        .inner-ring  { width: 140px; height: 140px; z-index: 3; font-size: 24px; border: 4px solid var(--wheel-border); }
+        .inner-ring  .wheel-item { height: 70px; width: 60px; margin-left: -30px; padding-top: 15px; }
         .center-btn {
-            position: absolute;
-            width: 65px;
-            height: 65px;
+            position: absolute; width: 65px; height: 65px;
             background: radial-gradient(circle at 30% 30%, #FFB7B2, #FF9AA2);
-            border-radius: 50%;
-            z-index: 10;
-            border: 5px solid white;
-            box-shadow: 0 5px 15px rgba(255, 154, 162, 0.4);
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            color: #333;
-            font-size: 18px;
-            transition: transform 0.1s;
+            border-radius: 50%; z-index: 10; border: 5px solid white;
+            box-shadow: 0 5px 15px rgba(255,154,162,0.4); cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            font-weight: bold; color: #333; font-size: 18px; transition: transform 0.1s;
         }
-
-        .center-btn:active {
-            transform: scale(0.95);
-        }
-
+        .center-btn:active { transform: scale(0.95); }
         .result-panel {
-            margin-top: 25px;
-            background: white;
-            padding: 20px 35px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            text-align: center;
-            min-width: 280px;
-            z-index: 10;
-            border: 2px solid #FFF0F5; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            margin-top: 25px; background: white; padding: 20px 35px;
+            border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center; min-width: 280px; z-index: 10;
+            border: 2px solid #FFF0F5; display: flex; flex-direction: column; align-items: center;
         }
-
         .result-labels {
-            display: flex;
-            justify-content: space-around;
-            font-size: 15px;
-            color: #888;
-            margin-bottom: 8px;
-            font-weight: bold;
-            width: 100%;
+            display: flex; justify-content: space-around;
+            font-size: 15px; color: #888; margin-bottom: 8px; font-weight: bold; width: 100%;
         }
-
-        .result-boxes {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-        }
-
+        .result-boxes { display: flex; justify-content: center; gap: 12px; }
         .result-box {
-            width: 65px;
-            height: 65px;
-            border-radius: 12px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 32px;
-            font-weight: bold;
-            color: #333;
-            text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+            width: 65px; height: 65px; border-radius: 12px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 32px; font-weight: bold; color: #333;
             box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
         }
-
         .box-initial { background-color: #FF9AA2; }
-        .box-final { background-color: #88D8B0; }
-        .box-tone { background-color: #FFDAC1; }
-        
-        .full-sound {
-            margin-top: 15px;
-            font-size: 22px;
-            color: #666;
-            height: 28px;
-            font-weight: bold;
-        }
-
-        /* 朗讀按鈕樣式 */
+        .box-final   { background-color: #88D8B0; }
+        .box-tone    { background-color: #FFDAC1; }
+        .full-sound  { margin-top: 15px; font-size: 22px; color: #666; height: 28px; font-weight: bold; }
+        .char-hint   { margin-top: 6px; font-size: 16px; color: #aaa; height: 22px; }
         .speak-btn {
-            margin-top: 15px;
-            padding: 10px 28px;
-            background-color: #4ECDC4;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: all 0.2s;
-            display: none; 
-            align-items: center;
-            gap: 8px;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: manipulation;
+            margin-top: 15px; padding: 10px 28px;
+            background-color: #4ECDC4; color: white; border: none;
+            border-radius: 25px; font-size: 18px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.2s;
+            display: none; align-items: center; gap: 8px;
+            user-select: none; -webkit-user-select: none; touch-action: manipulation;
         }
-
-        .speak-btn:hover {
-            background-color: #36b9b0;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
-        }
-
-        .speak-btn:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
+        .speak-btn:hover { background-color: #36b9b0; transform: translateY(-2px); }
+        .speak-btn:active { transform: translateY(0); }
         @media (max-width: 400px) {
-            .game-container {
-                transform: scale(0.85);
-            }
-            .result-panel {
-                min-width: 260px;
-                padding: 15px 20px;
-            }
+            .game-container { transform: scale(0.85); }
+            .result-panel { min-width: 260px; padding: 15px 20px; }
         }
     </style>
 </head>
 <body>
-
     <h1>注音轉盤遊戲</h1>
-
     <div class="game-container">
         <div class="pointer"></div>
-        <div class="wheel outer-ring" id="wheel-initial"></div>
+        <div class="wheel outer-ring"  id="wheel-initial"></div>
         <div class="wheel middle-ring" id="wheel-final"></div>
-        <div class="wheel inner-ring" id="wheel-tone"></div>
+        <div class="wheel inner-ring"  id="wheel-tone"></div>
         <div class="center-btn" onclick="spinWheel()">開始</div>
     </div>
-
     <div class="result-panel">
         <div class="result-labels">
-            <span style="width: 65px">聲母</span>
-            <span style="width: 65px">韻母</span>
-            <span style="width: 65px">聲調</span>
+            <span style="width:65px">聲母</span>
+            <span style="width:65px">韻母</span>
+            <span style="width:65px">聲調</span>
         </div>
         <div class="result-boxes">
             <div class="result-box box-initial" id="res-initial">?</div>
-            <div class="result-box box-final" id="res-final">?</div>
-            <div class="result-box box-tone" id="res-tone">?</div>
+            <div class="result-box box-final"   id="res-final">?</div>
+            <div class="result-box box-tone"    id="res-tone">?</div>
         </div>
         <div class="full-sound" id="res-text">準備開始...</div>
-        <!-- 朗讀按鈕 -->
+        <div class="char-hint"  id="res-char"></div>
         <button class="speak-btn" onclick="safeSpeakResult()">🔊 聽發音</button>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                const initials = [
-                    'ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ',
-                    'ㄐ','ㄑ','ㄒ','ㄓ','ㄔ','ㄕ','ㄖ','ㄗ','ㄘ','ㄙ'
-                ];
-                
-                const finals = [
-                    'ㄚ','ㄛ','ㄜ','ㄝ','ㄞ','ㄟ','ㄠ','ㄡ','ㄢ','ㄣ','ㄤ','ㄥ','ㄦ',
-                    'ㄧ','ㄨ','ㄩ'
-                ];
-                
-                const tones = [
-                    { label: ' ', name: '一聲', display: ' ' },
-                    { label: 'ˊ', name: '二聲', display: 'ˊ' },
-                    { label: 'ˇ', name: '三聲', display: 'ˇ' },
-                    { label: 'ˋ', name: '四聲', display: 'ˋ' }
-                ];
+<script>
+document.addEventListener('DOMContentLoaded', function() {
 
-                // 注音符號對應的漢語拼音（供 ResponsiveVoice 發音用）
-                // 格式：注音組合 → 對應中文字（用真實字發音最準確）
-                const bopomofoToPinyin = {
-                    'ㄅㄚ': 'ba', 'ㄅㄛ': 'bo', 'ㄅㄞ': 'bai', 'ㄅㄟ': 'bei',
-                    'ㄅㄠ': 'bao', 'ㄅㄢ': 'ban', 'ㄅㄣ': 'ben', 'ㄅㄤ': 'bang', 'ㄅㄥ': 'beng',
-                    'ㄅㄧ': 'bi', 'ㄅㄨ': 'bu',
-                    'ㄆㄚ': 'pa', 'ㄆㄛ': 'po', 'ㄆㄞ': 'pai', 'ㄆㄟ': 'pei',
-                    'ㄆㄠ': 'pao', 'ㄆㄡ': 'pou', 'ㄆㄢ': 'pan', 'ㄆㄣ': 'pen',
-                    'ㄆㄤ': 'pang', 'ㄆㄥ': 'peng', 'ㄆㄧ': 'pi', 'ㄆㄨ': 'pu',
-                    'ㄇㄚ': 'ma', 'ㄇㄛ': 'mo', 'ㄇㄜ': 'me',
-                    'ㄇㄞ': 'mai', 'ㄇㄟ': 'mei', 'ㄇㄠ': 'mao', 'ㄇㄡ': 'mou',
-                    'ㄇㄢ': 'man', 'ㄇㄣ': 'men', 'ㄇㄤ': 'mang', 'ㄇㄥ': 'meng',
-                    'ㄇㄧ': 'mi', 'ㄇㄨ': 'mu',
-                    'ㄈㄚ': 'fa', 'ㄈㄛ': 'fo', 'ㄈㄟ': 'fei', 'ㄈㄡ': 'fou',
-                    'ㄈㄢ': 'fan', 'ㄈㄣ': 'fen', 'ㄈㄤ': 'fang', 'ㄈㄥ': 'feng', 'ㄈㄨ': 'fu',
-                    'ㄉㄚ': 'da', 'ㄉㄜ': 'de', 'ㄉㄞ': 'dai', 'ㄉㄠ': 'dao', 'ㄉㄡ': 'dou',
-                    'ㄉㄢ': 'dan', 'ㄉㄣ': 'den', 'ㄉㄤ': 'dang', 'ㄉㄥ': 'deng', 'ㄉㄧ': 'di', 'ㄉㄨ': 'du',
-                    'ㄊㄚ': 'ta', 'ㄊㄜ': 'te', 'ㄊㄞ': 'tai', 'ㄊㄠ': 'tao', 'ㄊㄡ': 'tou',
-                    'ㄊㄢ': 'tan', 'ㄊㄤ': 'tang', 'ㄊㄥ': 'teng', 'ㄊㄧ': 'ti', 'ㄊㄨ': 'tu',
-                    'ㄋㄚ': 'na', 'ㄋㄜ': 'ne', 'ㄋㄞ': 'nai', 'ㄋㄟ': 'nei', 'ㄋㄠ': 'nao', 'ㄋㄡ': 'nou',
-                    'ㄋㄢ': 'nan', 'ㄋㄣ': 'nen', 'ㄋㄤ': 'nang', 'ㄋㄥ': 'neng', 'ㄋㄧ': 'ni', 'ㄋㄨ': 'nu', 'ㄋㄩ': 'nü',
-                    'ㄌㄚ': 'la', 'ㄌㄛ': 'lo', 'ㄌㄜ': 'le', 'ㄌㄞ': 'lai', 'ㄌㄟ': 'lei', 'ㄌㄠ': 'lao', 'ㄌㄡ': 'lou',
-                    'ㄌㄢ': 'lan', 'ㄌㄤ': 'lang', 'ㄌㄥ': 'leng', 'ㄌㄧ': 'li', 'ㄌㄨ': 'lu', 'ㄌㄩ': 'lü',
-                    'ㄍㄚ': 'ga', 'ㄍㄜ': 'ge', 'ㄍㄞ': 'gai', 'ㄍㄟ': 'gei', 'ㄍㄠ': 'gao', 'ㄍㄡ': 'gou',
-                    'ㄍㄢ': 'gan', 'ㄍㄣ': 'gen', 'ㄍㄤ': 'gang', 'ㄍㄥ': 'geng', 'ㄍㄨ': 'gu',
-                    'ㄎㄚ': 'ka', 'ㄎㄜ': 'ke', 'ㄎㄞ': 'kai', 'ㄎㄠ': 'kao', 'ㄎㄡ': 'kou',
-                    'ㄎㄢ': 'kan', 'ㄎㄣ': 'ken', 'ㄎㄤ': 'kang', 'ㄎㄥ': 'keng', 'ㄎㄨ': 'ku',
-                    'ㄏㄚ': 'ha', 'ㄏㄜ': 'he', 'ㄏㄞ': 'hai', 'ㄏㄟ': 'hei', 'ㄏㄠ': 'hao', 'ㄏㄡ': 'hou',
-                    'ㄏㄢ': 'han', 'ㄏㄣ': 'hen', 'ㄏㄤ': 'hang', 'ㄏㄥ': 'heng', 'ㄏㄨ': 'hu',
-                    'ㄐㄧ': 'ji', 'ㄐㄩ': 'ju',
-                    'ㄑㄧ': 'qi', 'ㄑㄩ': 'qu',
-                    'ㄒㄧ': 'xi', 'ㄒㄩ': 'xu',
-                    'ㄓㄚ': 'zha', 'ㄓㄜ': 'zhe', 'ㄓㄞ': 'zhai', 'ㄓㄠ': 'zhao', 'ㄓㄡ': 'zhou',
-                    'ㄓㄢ': 'zhan', 'ㄓㄣ': 'zhen', 'ㄓㄤ': 'zhang', 'ㄓㄥ': 'zheng', 'ㄓㄨ': 'zhu',
-                    'ㄔㄚ': 'cha', 'ㄔㄜ': 'che', 'ㄔㄞ': 'chai', 'ㄔㄠ': 'chao', 'ㄔㄡ': 'chou',
-                    'ㄔㄢ': 'chan', 'ㄔㄣ': 'chen', 'ㄔㄤ': 'chang', 'ㄔㄥ': 'cheng', 'ㄔㄨ': 'chu',
-                    'ㄕㄚ': 'sha', 'ㄕㄜ': 'she', 'ㄕㄞ': 'shai', 'ㄕㄠ': 'shao', 'ㄕㄡ': 'shou',
-                    'ㄕㄢ': 'shan', 'ㄕㄣ': 'shen', 'ㄕㄤ': 'shang', 'ㄕㄥ': 'sheng', 'ㄕㄨ': 'shu',
-                    'ㄖㄜ': 're', 'ㄖㄠ': 'rao', 'ㄖㄡ': 'rou', 'ㄖㄢ': 'ran', 'ㄖㄣ': 'ren',
-                    'ㄖㄤ': 'rang', 'ㄖㄥ': 'reng', 'ㄖㄨ': 'ru',
-                    'ㄗㄚ': 'za', 'ㄗㄜ': 'ze', 'ㄗㄞ': 'zai', 'ㄗㄠ': 'zao', 'ㄗㄡ': 'zou',
-                    'ㄗㄢ': 'zan', 'ㄗㄣ': 'zen', 'ㄗㄤ': 'zang', 'ㄗㄥ': 'zeng', 'ㄗㄨ': 'zu',
-                    'ㄘㄚ': 'ca', 'ㄘㄜ': 'ce', 'ㄘㄞ': 'cai', 'ㄘㄠ': 'cao', 'ㄘㄡ': 'cou',
-                    'ㄘㄢ': 'can', 'ㄘㄣ': 'cen', 'ㄘㄤ': 'cang', 'ㄘㄥ': 'ceng', 'ㄘㄨ': 'cu',
-                    'ㄙㄚ': 'sa', 'ㄙㄜ': 'se', 'ㄙㄞ': 'sai', 'ㄙㄠ': 'sao', 'ㄙㄡ': 'sou',
-                    'ㄙㄢ': 'san', 'ㄙㄣ': 'sen', 'ㄙㄤ': 'sang', 'ㄙㄥ': 'seng', 'ㄙㄨ': 'su'
-                };
+    // 注音組合 + 聲調索引 → 對應中文字
+    // 索引 0=一聲 1=二聲 2=三聲 3=四聲，null=無常用字
+    const bopoToChar = {
+        'ㄅㄚ':['巴','拔','把','爸'], 'ㄅㄛ':['波','薄','跛','播'],
+        'ㄅㄞ':['掰','白','擺','敗'], 'ㄅㄟ':['杯',null,'背','背'],
+        'ㄅㄠ':['包',null,'寶','報'], 'ㄅㄢ':['班',null,'板','半'],
+        'ㄅㄣ':['奔',null,'本',null], 'ㄅㄤ':['幫',null,'榜','棒'],
+        'ㄅㄥ':['崩',null,'蹦','迸'], 'ㄅㄧ':['逼','鼻','比','必'],
+        'ㄅㄨ':['補',null,'補','布'],
+        'ㄆㄚ':['趴','爬',null,'怕'], 'ㄆㄛ':['坡','婆',null,'破'],
+        'ㄆㄞ':['拍','牌',null,'派'], 'ㄆㄟ':['胚','陪',null,'配'],
+        'ㄆㄠ':['拋','袍',null,'跑'], 'ㄆㄡ':['剖',null,null,'剖'],
+        'ㄆㄢ':['攀','盤',null,'判'], 'ㄆㄣ':['噴','盆',null,'噴'],
+        'ㄆㄤ':['乓','旁',null,null], 'ㄆㄥ':['烹','朋','捧','碰'],
+        'ㄆㄧ':['批','皮','痞','屁'], 'ㄆㄨ':['鋪','僕','普','瀑'],
+        'ㄇㄚ':['媽','麻','馬','罵'], 'ㄇㄛ':['摸','磨','抹','磨'],
+        'ㄇㄜ':['麼',null,null,null], 'ㄇㄞ':[null,'買','買','賣'],
+        'ㄇㄟ':[null,'眉','美','妹'], 'ㄇㄠ':['貓','毛','卯','帽'],
+        'ㄇㄡ':[null,'謀','某','某'], 'ㄇㄢ':[null,'蠻','滿','慢'],
+        'ㄇㄣ':[null,'門',null,'悶'], 'ㄇㄤ':[null,'忙',null,null],
+        'ㄇㄥ':['蒙','萌','猛','夢'], 'ㄇㄧ':['咪','迷','米','密'],
+        'ㄇㄨ':['模',null,'木','目'],
+        'ㄈㄚ':['發','罰','法','罰'], 'ㄈㄛ':[null,'佛',null,null],
+        'ㄈㄟ':['飛','肥','匪','費'], 'ㄈㄡ':[null,null,'否','否'],
+        'ㄈㄢ':['翻','凡','反','飯'], 'ㄈㄣ':['分','墳','粉','份'],
+        'ㄈㄤ':['方','房','訪','放'], 'ㄈㄥ':['風','逢','諷','奉'],
+        'ㄈㄨ':['夫','扶','府','付'],
+        'ㄉㄚ':['搭','達','打','大'], 'ㄉㄜ':[null,'的',null,null],
+        'ㄉㄞ':['呆',null,'逮','戴'], 'ㄉㄠ':['刀',null,'島','道'],
+        'ㄉㄡ':['兜',null,'抖','豆'], 'ㄉㄢ':['單',null,'膽','但'],
+        'ㄉㄣ':[null,null,null,'扽'], 'ㄉㄤ':['當',null,'擋','當'],
+        'ㄉㄥ':['燈',null,'等','凳'], 'ㄉㄧ':['低','敵','底','地'],
+        'ㄉㄨ':['都','獨','賭','度'],
+        'ㄊㄚ':['他',null,'塔','踏'], 'ㄊㄜ':[null,null,null,'特'],
+        'ㄊㄞ':['胎','台','太','態'], 'ㄊㄠ':['掏','桃','討','套'],
+        'ㄊㄡ':['偷','頭',null,'透'], 'ㄊㄢ':['攤','談','坦','嘆'],
+        'ㄊㄤ':['湯','堂','躺','燙'], 'ㄊㄥ':['疼','騰',null,null],
+        'ㄊㄧ':['梯','題','體','替'], 'ㄊㄨ':['突','徒','土','兔'],
+        'ㄋㄚ':[null,'拿','哪','那'], 'ㄋㄜ':[null,null,null,'呢'],
+        'ㄋㄞ':[null,null,'奶','耐'], 'ㄋㄟ':[null,null,'餒','內'],
+        'ㄋㄠ':[null,'撓','腦','鬧'], 'ㄋㄡ':[null,null,null,'耨'],
+        'ㄋㄢ':['囡','難','哪','難'], 'ㄋㄣ':[null,null,null,'嫩'],
+        'ㄋㄤ':[null,'囊','曩','囊'], 'ㄋㄥ':[null,'能',null,null],
+        'ㄋㄧ':['妮','尼','你','膩'], 'ㄋㄨ':[null,'奴','努','怒'],
+        'ㄋㄩ':[null,null,'女','恕'],
+        'ㄌㄚ':['啦','拉','喇','辣'], 'ㄌㄛ':[null,'囉',null,null],
+        'ㄌㄜ':[null,null,null,'樂'], 'ㄌㄞ':[null,'來',null,'賴'],
+        'ㄌㄟ':[null,'雷','壘','類'], 'ㄌㄠ':['撈','勞','老','烙'],
+        'ㄌㄡ':['摟','樓',null,'漏'], 'ㄌㄢ':[null,'蘭','攬','爛'],
+        'ㄌㄤ':[null,'郎','朗','浪'], 'ㄌㄥ':['棱',null,null,'冷'],
+        'ㄌㄧ':['哩','離','李','力'], 'ㄌㄨ':['盧',null,'旅','路'],
+        'ㄌㄩ':[null,'呂','旅','慮'],
+        'ㄍㄚ':['噶',null,null,'軋'], 'ㄍㄜ':['哥','格',null,'各'],
+        'ㄍㄞ':['該',null,'改','蓋'], 'ㄍㄟ':[null,null,'給',null],
+        'ㄍㄠ':['高',null,'搞','告'], 'ㄍㄡ':['勾',null,'狗','夠'],
+        'ㄍㄢ':['乾',null,'敢','幹'], 'ㄍㄣ':['根',null,null,null],
+        'ㄍㄤ':['剛',null,'港','鋼'], 'ㄍㄥ':['更',null,'梗','更'],
+        'ㄍㄨ':['姑',null,'古','顧'],
+        'ㄎㄚ':['咖',null,'卡','卡'], 'ㄎㄜ':['科','殼','可','課'],
+        'ㄎㄞ':['開',null,'凱','慨'], 'ㄎㄠ':['烤',null,'考','靠'],
+        'ㄎㄡ':['摳',null,'口','扣'], 'ㄎㄢ':['刊',null,'侃','看'],
+        'ㄎㄣ':[null,null,'肯',null], 'ㄎㄤ':['康',null,null,'炕'],
+        'ㄎㄥ':['坑',null,null,null], 'ㄎㄨ':['枯',null,'苦','庫'],
+        'ㄏㄚ':['哈',null,null,'哈'], 'ㄏㄜ':['喝','合',null,'河'],
+        'ㄏㄞ':['嗨','孩','海','害'], 'ㄏㄟ':['嘿',null,null,null],
+        'ㄏㄠ':['蒿','毫','好','號'], 'ㄏㄡ':['喉',null,null,'後'],
+        'ㄏㄢ':['酣','含','罕','漢'], 'ㄏㄣ':['痕',null,'很','恨'],
+        'ㄏㄤ':['夯','航',null,'巷'], 'ㄏㄥ':['哼','恆',null,'哼'],
+        'ㄏㄨ':['呼','胡','虎','護'],
+        'ㄐㄧ':['機','及','幾','記'], 'ㄐㄩ':['居','局','舉','句'],
+        'ㄑㄧ':['期','奇','起','氣'], 'ㄑㄩ':['區','渠','取','去'],
+        'ㄒㄧ':['西','習','喜','戲'], 'ㄒㄩ':['需','徐','許','續'],
+        'ㄓㄚ':['紮','扎',null,'炸'], 'ㄓㄜ':['遮','折','者','這'],
+        'ㄓㄞ':['摘',null,null,'債'], 'ㄓㄠ':['招','著','找','罩'],
+        'ㄓㄡ':['周','軸','肘','晝'], 'ㄓㄢ':['沾',null,'展','戰'],
+        'ㄓㄣ':['真',null,'枕','陣'], 'ㄓㄤ':['張',null,'掌','帳'],
+        'ㄓㄥ':['蒸',null,'整','正'], 'ㄓㄨ':['豬','竹','主','注'],
+        'ㄔㄚ':['插','茶',null,'岔'], 'ㄔㄜ':['車',null,'扯','徹'],
+        'ㄔㄞ':['拆',null,null,'差'], 'ㄔㄠ':['抄','潮','吵','炒'],
+        'ㄔㄡ':['抽','愁','醜','臭'], 'ㄔㄢ':['攙','纏','產','顫'],
+        'ㄔㄣ':['嗔','陳',null,'趁'], 'ㄔㄤ':['昌','長','廠','暢'],
+        'ㄔㄥ':['撐','成','逞','稱'], 'ㄔㄨ':['初','廚','楚','處'],
+        'ㄕㄚ':['沙',null,'傻','煞'], 'ㄕㄜ':['奢','舌','捨','射'],
+        'ㄕㄞ':['篩',null,null,'晒'], 'ㄕㄠ':['燒','韶','少','哨'],
+        'ㄕㄡ':['收',null,'手','獸'], 'ㄕㄢ':['山',null,'閃','善'],
+        'ㄕㄣ':['深','神','審','慎'], 'ㄕㄤ':['商',null,'賞','上'],
+        'ㄕㄥ':['生','繩','省','勝'], 'ㄕㄨ':['書','熟','鼠','樹'],
+        'ㄖㄜ':[null,null,null,'熱'], 'ㄖㄠ':[null,'饒',null,'繞'],
+        'ㄖㄡ':[null,'柔',null,'肉'], 'ㄖㄢ':[null,'然','染','染'],
+        'ㄖㄣ':[null,'人','忍','認'], 'ㄖㄤ':[null,'瓤','嚷','讓'],
+        'ㄖㄥ':['扔','仍',null,null], 'ㄖㄨ':[null,'如','乳','入'],
+        'ㄗㄚ':['紮','雜',null,null], 'ㄗㄜ':['則',null,null,'責'],
+        'ㄗㄞ':['災',null,null,'在'], 'ㄗㄠ':['糟',null,'早','造'],
+        'ㄗㄡ':['鄒',null,'走','奏'], 'ㄗㄢ':['咱',null,null,'讚'],
+        'ㄗㄣ':[null,null,'怎',null], 'ㄗㄤ':['臟',null,null,'葬'],
+        'ㄗㄥ':['增',null,null,'贈'], 'ㄗㄨ':['租',null,'組','祖'],
+        'ㄘㄚ':['擦',null,null,null], 'ㄘㄜ':[null,null,null,'側'],
+        'ㄘㄞ':['猜',null,'彩','菜'], 'ㄘㄠ':['操',null,'草','操'],
+        'ㄘㄡ':['湊',null,null,'湊'], 'ㄘㄢ':['餐',null,'慘','燦'],
+        'ㄘㄣ':['參',null,null,null], 'ㄘㄤ':['倉',null,null,null],
+        'ㄘㄥ':['層',null,null,'蹭'], 'ㄘㄨ':['粗',null,'醋','促'],
+        'ㄙㄚ':['撒',null,null,null], 'ㄙㄜ':[null,null,null,'色'],
+        'ㄙㄞ':['腮',null,null,'賽'], 'ㄙㄠ':['騷',null,'掃','掃'],
+        'ㄙㄡ':['搜',null,null,'嗽'], 'ㄙㄢ':['三',null,'散','散'],
+        'ㄙㄣ':['森',null,null,null], 'ㄙㄤ':['桑',null,'嗓','喪'],
+        'ㄙㄥ':['僧',null,null,null], 'ㄙㄨ':['蘇',null,'素','速'],
+    };
 
-                // 聲調數字對應（用在拼音末尾，讓 TTS 依聲調發音）
-                const toneNumbers = ['1', '2', '3', '4'];
+    const initials = ['ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ',
+                      'ㄐ','ㄑ','ㄒ','ㄓ','ㄔ','ㄕ','ㄖ','ㄗ','ㄘ','ㄙ'];
+    const finals  = ['ㄚ','ㄛ','ㄜ','ㄝ','ㄞ','ㄟ','ㄠ','ㄡ','ㄢ','ㄣ','ㄤ','ㄥ','ㄦ',
+                     'ㄧ','ㄨ','ㄩ'];
+    const tones   = [
+        { display: ' ',  name: '一聲' },
+        { display: 'ˊ', name: '二聲' },
+        { display: 'ˇ', name: '三聲' },
+        { display: 'ˋ', name: '四聲' },
+    ];
 
-                const toneDatabase = {
-                    'ㄅㄚ': [0, 1, 2, 3], 'ㄅㄛ': [0, 1, 2, 3], 'ㄅㄞ': [0, 1, 2, 3], 'ㄅㄟ': [0, 2, 3], 
-                    'ㄅㄠ': [0, 2, 3], 'ㄅㄢ': [0, 2, 3], 'ㄅㄣ': [0, 2, 3], 'ㄅㄤ': [0, 2, 3], 'ㄅㄥ': [0, 2, 3],
-                    'ㄅㄧ': [0, 1, 2, 3], 'ㄅㄨ': [0, 2, 3],
-                    'ㄆㄚ': [0, 1, 3], 'ㄆㄛ': [0, 1, 2, 3], 'ㄆㄞ': [0, 1, 2, 3], 'ㄆㄟ': [0, 1, 2, 3], 
-                    'ㄆㄠ': [0, 1, 3], 'ㄆㄡ': [0, 3], 'ㄆㄢ': [0, 1, 2, 3], 'ㄆㄣ': [0, 1, 3], 
-                    'ㄆㄤ': [0, 1, 2], 'ㄆㄥ': [0, 1, 2, 3], 'ㄆㄧ': [0, 1, 2, 3], 'ㄆㄨ': [0, 1, 2, 3],
-                    'ㄇㄚ': [0, 1, 2, 3], 'ㄇㄛ': [0, 1, 2, 3], 'ㄇㄜ': [0], 
-                    'ㄇㄞ': [1, 2, 3], 'ㄇㄟ': [1, 2, 3], 'ㄇㄠ': [0, 1, 2, 3], 'ㄇㄡ': [1, 2, 3], 
-                    'ㄇㄢ': [1, 2, 3], 'ㄇㄣ': [1, 3], 'ㄇㄤ': [1, 2], 'ㄇㄥ': [0, 1, 2, 3], 
-                    'ㄇㄧ': [0, 1, 2, 3], 'ㄇㄨ': [0, 2, 3],
-                    'ㄈㄚ': [0, 1, 2, 3], 'ㄈㄛ': [1], 'ㄈㄟ': [0, 1, 2, 3], 'ㄈㄡ': [2, 3], 
-                    'ㄈㄢ': [0, 1, 2, 3], 'ㄈㄣ': [0, 1, 2, 3], 'ㄈㄤ': [0, 1, 2, 3], 'ㄈㄥ': [0, 1, 2, 3], 
-                    'ㄈㄨ': [0, 1, 2, 3],
-                    'ㄉㄚ': [0, 1, 2, 3], 'ㄉㄜ': [1], 'ㄉㄞ': [0, 2, 3], 'ㄉㄠ': [0, 2, 3], 'ㄉㄡ': [0, 2, 3], 
-                    'ㄉㄢ': [0, 2, 3], 'ㄉㄣ': [3], 'ㄉㄤ': [0, 2, 3], 'ㄉㄥ': [0, 2, 3], 'ㄉㄧ': [0, 1, 2, 3], 'ㄉㄨ': [0, 1, 2, 3],
-                    'ㄊㄚ': [0, 2, 3], 'ㄊㄜ': [3], 'ㄊㄞ': [0, 1, 2, 3], 'ㄊㄠ': [0, 1, 2, 3], 'ㄊㄡ': [0, 1, 2, 3], 
-                    'ㄊㄢ': [0, 1, 2, 3], 'ㄊㄤ': [0, 1, 2, 3], 'ㄊㄥ': [0, 1, 2], 'ㄊㄧ': [0, 1, 2, 3], 'ㄊㄨ': [0, 1, 2, 3],
-                    'ㄋㄚ': [1, 2, 3], 'ㄋㄜ': [3], 'ㄋㄞ': [2, 3], 'ㄋㄟ': [2, 3], 'ㄋㄠ': [1, 2, 3], 'ㄋㄡ': [3], 
-                    'ㄋㄢ': [0, 1, 2, 3], 'ㄋㄣ': [3], 'ㄋㄤ': [1, 2, 3], 'ㄋㄥ': [1, 2], 'ㄋㄧ': [0, 1, 2, 3], 'ㄋㄨ': [1, 2, 3], 'ㄋㄩ': [2, 3],
-                    'ㄌㄚ': [0, 1, 2, 3], 'ㄌㄛ': [1], 'ㄌㄜ': [3], 'ㄌㄞ': [1, 3], 'ㄌㄟ': [1, 2, 3], 'ㄌㄠ': [0, 1, 2, 3], 'ㄌㄡ': [0, 1, 2, 3], 
-                    'ㄌㄢ': [1, 2, 3], 'ㄌㄤ': [1, 2, 3], 'ㄌㄥ': [0, 1, 3], 'ㄌㄧ': [0, 1, 2, 3], 'ㄌㄨ': [0, 1, 2, 3], 'ㄌㄩ': [1, 2, 3],
-                    'ㄍㄚ': [0, 1, 3], 'ㄍㄜ': [0, 1, 2, 3], 'ㄍㄞ': [0, 2, 3], 'ㄍㄟ': [2], 'ㄍㄠ': [0, 2, 3], 'ㄍㄡ': [0, 3], 
-                    'ㄍㄢ': [0, 2, 3], 'ㄍㄣ': [0, 2, 3], 'ㄍㄤ': [0, 2, 3], 'ㄍㄥ': [0, 2, 3], 'ㄍㄨ': [0, 2, 3],
-                    'ㄎㄚ': [0, 2, 3], 'ㄎㄜ': [0, 1, 2, 3], 'ㄎㄞ': [0, 2, 3], 'ㄎㄠ': [0, 2, 3], 'ㄎㄡ': [0, 3], 
-                    'ㄎㄢ': [0, 1, 2, 3], 'ㄎㄣ': [0, 2, 3], 'ㄎㄤ': [0, 1, 2, 3], 'ㄎㄥ': [0, 3], 'ㄎㄨ': [0, 2, 3],
-                    'ㄏㄚ': [0, 1, 2, 3], 'ㄏㄜ': [0, 1, 2, 3], 'ㄏㄞ': [0, 1, 2, 3], 'ㄏㄟ': [0], 'ㄏㄠ': [0, 1, 2, 3], 'ㄏㄡ': [0, 2, 3], 
-                    'ㄏㄢ': [0, 1, 2, 3], 'ㄏㄣ': [0, 2, 3], 'ㄏㄤ': [0, 1, 2, 3], 'ㄏㄥ': [0, 1, 2, 3], 'ㄏㄨ': [0, 1, 2, 3],
-                    'ㄐㄧ': [0, 1, 2, 3], 'ㄐㄩ': [0, 1, 2, 3],
-                    'ㄑㄧ': [0, 1, 2, 3], 'ㄑㄩ': [0, 1, 2, 3],
-                    'ㄒㄧ': [0, 1, 2, 3], 'ㄒㄩ': [0, 1, 2, 3],
-                    'ㄓㄚ': [0, 1, 2, 3], 'ㄓㄜ': [0, 1, 2, 3], 'ㄓㄞ': [0, 1, 2, 3], 'ㄓㄠ': [0, 1, 2, 3], 'ㄓㄡ': [0, 1, 2, 3], 
-                    'ㄓㄢ': [0, 2, 3], 'ㄓㄣ': [0, 2, 3], 'ㄓㄤ': [0, 2, 3], 'ㄓㄥ': [0, 2, 3], 'ㄓㄨ': [0, 1, 2, 3],
-                    'ㄔㄚ': [0, 1, 2, 3], 'ㄔㄜ': [0, 2, 3], 'ㄔㄞ': [0, 1, 3], 'ㄔㄠ': [0, 1, 2, 3], 'ㄔㄡ': [0, 1, 2, 3], 
-                    'ㄔㄢ': [0, 1, 2, 3], 'ㄔㄣ': [0, 1, 2, 3], 'ㄔㄤ': [0, 1, 2, 3], 'ㄔㄥ': [0, 1, 2, 3], 'ㄔㄨ': [0, 1, 2, 3],
-                    'ㄕㄚ': [0, 2, 3], 'ㄕㄜ': [0, 1, 2, 3], 'ㄕㄞ': [0, 3], 'ㄕㄠ': [0, 1, 2, 3], 'ㄕㄡ': [0, 2, 3], 
-                    'ㄕㄢ': [0, 2, 3], 'ㄕㄣ': [0, 1, 2, 3], 'ㄕㄤ': [0, 2, 3], 'ㄕㄥ': [0, 1, 2, 3], 'ㄕㄨ': [0, 1, 2, 3],
-                    'ㄖㄜ': [3], 'ㄖㄠ': [1, 2, 3], 'ㄖㄡ': [1, 3], 'ㄖㄢ': [1, 2, 3], 'ㄖㄣ': [1, 2, 3], 
-                    'ㄖㄤ': [1, 2, 3], 'ㄖㄥ': [0, 1], 'ㄖㄨ': [1, 2, 3],
-                    'ㄗㄚ': [0, 1, 2], 'ㄗㄜ': [0, 1, 2, 3], 'ㄗㄞ': [0, 3], 'ㄗㄠ': [0, 2, 3], 'ㄗㄡ': [0, 2, 3], 
-                    'ㄗㄢ': [0, 1, 3], 'ㄗㄣ': [2], 'ㄗㄤ': [0, 1, 3], 'ㄗㄥ': [0, 3], 'ㄗㄨ': [0, 1, 2, 3],
-                    'ㄘㄚ': [0, 1], 'ㄘㄜ': [3], 'ㄘㄞ': [0, 1, 2, 3], 'ㄘㄠ': [0, 2, 3], 'ㄘㄡ': [0, 3], 
-                    'ㄘㄢ': [0, 1, 2, 3], 'ㄘㄣ': [0, 1], 'ㄘㄤ': [0, 1, 2], 'ㄘㄥ': [0, 1, 2, 3], 'ㄘㄨ': [0, 1, 2, 3],
-                    'ㄙㄚ': [0, 2, 3], 'ㄙㄜ': [3], 'ㄙㄞ': [0, 3], 'ㄙㄠ': [0, 2, 3], 'ㄙㄡ': [0, 2, 3], 
-                    'ㄙㄢ': [0, 2, 3], 'ㄙㄣ': [0], 'ㄙㄤ': [0, 2, 3], 'ㄙㄥ': [0], 'ㄙㄨ': [0, 1, 2, 3]
-                };
+    const toneDatabase = {
+        'ㄅㄚ':[0,1,2,3],'ㄅㄛ':[0,1,2,3],'ㄅㄞ':[0,1,2,3],'ㄅㄟ':[0,2,3],
+        'ㄅㄠ':[0,2,3],'ㄅㄢ':[0,2,3],'ㄅㄣ':[0,2,3],'ㄅㄤ':[0,2,3],'ㄅㄥ':[0,2,3],
+        'ㄅㄧ':[0,1,2,3],'ㄅㄨ':[0,2,3],
+        'ㄆㄚ':[0,1,3],'ㄆㄛ':[0,1,2,3],'ㄆㄞ':[0,1,2,3],'ㄆㄟ':[0,1,2,3],
+        'ㄆㄠ':[0,1,3],'ㄆㄡ':[0,3],'ㄆㄢ':[0,1,2,3],'ㄆㄣ':[0,1,3],
+        'ㄆㄤ':[0,1,2],'ㄆㄥ':[0,1,2,3],'ㄆㄧ':[0,1,2,3],'ㄆㄨ':[0,1,2,3],
+        'ㄇㄚ':[0,1,2,3],'ㄇㄛ':[0,1,2,3],'ㄇㄜ':[0],
+        'ㄇㄞ':[1,2,3],'ㄇㄟ':[1,2,3],'ㄇㄠ':[0,1,2,3],'ㄇㄡ':[1,2,3],
+        'ㄇㄢ':[1,2,3],'ㄇㄣ':[1,3],'ㄇㄤ':[1,2],'ㄇㄥ':[0,1,2,3],
+        'ㄇㄧ':[0,1,2,3],'ㄇㄨ':[0,2,3],
+        'ㄈㄚ':[0,1,2,3],'ㄈㄛ':[1],'ㄈㄟ':[0,1,2,3],'ㄈㄡ':[2,3],
+        'ㄈㄢ':[0,1,2,3],'ㄈㄣ':[0,1,2,3],'ㄈㄤ':[0,1,2,3],'ㄈㄥ':[0,1,2,3],'ㄈㄨ':[0,1,2,3],
+        'ㄉㄚ':[0,1,2,3],'ㄉㄜ':[1],'ㄉㄞ':[0,2,3],'ㄉㄠ':[0,2,3],'ㄉㄡ':[0,2,3],
+        'ㄉㄢ':[0,2,3],'ㄉㄣ':[3],'ㄉㄤ':[0,2,3],'ㄉㄥ':[0,2,3],'ㄉㄧ':[0,1,2,3],'ㄉㄨ':[0,1,2,3],
+        'ㄊㄚ':[0,2,3],'ㄊㄜ':[3],'ㄊㄞ':[0,1,2,3],'ㄊㄠ':[0,1,2,3],'ㄊㄡ':[0,1,2,3],
+        'ㄊㄢ':[0,1,2,3],'ㄊㄤ':[0,1,2,3],'ㄊㄥ':[0,1,2],'ㄊㄧ':[0,1,2,3],'ㄊㄨ':[0,1,2,3],
+        'ㄋㄚ':[1,2,3],'ㄋㄜ':[3],'ㄋㄞ':[2,3],'ㄋㄟ':[2,3],'ㄋㄠ':[1,2,3],'ㄋㄡ':[3],
+        'ㄋㄢ':[0,1,2,3],'ㄋㄣ':[3],'ㄋㄤ':[1,2,3],'ㄋㄥ':[1,2],'ㄋㄧ':[0,1,2,3],'ㄋㄨ':[1,2,3],'ㄋㄩ':[2,3],
+        'ㄌㄚ':[0,1,2,3],'ㄌㄛ':[1],'ㄌㄜ':[3],'ㄌㄞ':[1,3],'ㄌㄟ':[1,2,3],'ㄌㄠ':[0,1,2,3],'ㄌㄡ':[0,1,2,3],
+        'ㄌㄢ':[1,2,3],'ㄌㄤ':[1,2,3],'ㄌㄥ':[0,1,3],'ㄌㄧ':[0,1,2,3],'ㄌㄨ':[0,1,2,3],'ㄌㄩ':[1,2,3],
+        'ㄍㄚ':[0,1,3],'ㄍㄜ':[0,1,2,3],'ㄍㄞ':[0,2,3],'ㄍㄟ':[2],'ㄍㄠ':[0,2,3],'ㄍㄡ':[0,3],
+        'ㄍㄢ':[0,2,3],'ㄍㄣ':[0,2,3],'ㄍㄤ':[0,2,3],'ㄍㄥ':[0,2,3],'ㄍㄨ':[0,2,3],
+        'ㄎㄚ':[0,2,3],'ㄎㄜ':[0,1,2,3],'ㄎㄞ':[0,2,3],'ㄎㄠ':[0,2,3],'ㄎㄡ':[0,3],
+        'ㄎㄢ':[0,1,2,3],'ㄎㄣ':[0,2,3],'ㄎㄤ':[0,1,2,3],'ㄎㄥ':[0,3],'ㄎㄨ':[0,2,3],
+        'ㄏㄚ':[0,1,2,3],'ㄏㄜ':[0,1,2,3],'ㄏㄞ':[0,1,2,3],'ㄏㄟ':[0],'ㄏㄠ':[0,1,2,3],'ㄏㄡ':[0,2,3],
+        'ㄏㄢ':[0,1,2,3],'ㄏㄣ':[0,2,3],'ㄏㄤ':[0,1,2,3],'ㄏㄥ':[0,1,2,3],'ㄏㄨ':[0,1,2,3],
+        'ㄐㄧ':[0,1,2,3],'ㄐㄩ':[0,1,2,3],
+        'ㄑㄧ':[0,1,2,3],'ㄑㄩ':[0,1,2,3],
+        'ㄒㄧ':[0,1,2,3],'ㄒㄩ':[0,1,2,3],
+        'ㄓㄚ':[0,1,2,3],'ㄓㄜ':[0,1,2,3],'ㄓㄞ':[0,1,2,3],'ㄓㄠ':[0,1,2,3],'ㄓㄡ':[0,1,2,3],
+        'ㄓㄢ':[0,2,3],'ㄓㄣ':[0,2,3],'ㄓㄤ':[0,2,3],'ㄓㄥ':[0,2,3],'ㄓㄨ':[0,1,2,3],
+        'ㄔㄚ':[0,1,2,3],'ㄔㄜ':[0,2,3],'ㄔㄞ':[0,1,3],'ㄔㄠ':[0,1,2,3],'ㄔㄡ':[0,1,2,3],
+        'ㄔㄢ':[0,1,2,3],'ㄔㄣ':[0,1,2,3],'ㄔㄤ':[0,1,2,3],'ㄔㄥ':[0,1,2,3],'ㄔㄨ':[0,1,2,3],
+        'ㄕㄚ':[0,2,3],'ㄕㄜ':[0,1,2,3],'ㄕㄞ':[0,3],'ㄕㄠ':[0,1,2,3],'ㄕㄡ':[0,2,3],
+        'ㄕㄢ':[0,2,3],'ㄕㄣ':[0,1,2,3],'ㄕㄤ':[0,2,3],'ㄕㄥ':[0,1,2,3],'ㄕㄨ':[0,1,2,3],
+        'ㄖㄜ':[3],'ㄖㄠ':[1,2,3],'ㄖㄡ':[1,3],'ㄖㄢ':[1,2,3],'ㄖㄣ':[1,2,3],
+        'ㄖㄤ':[1,2,3],'ㄖㄥ':[0,1],'ㄖㄨ':[1,2,3],
+        'ㄗㄚ':[0,1,2],'ㄗㄜ':[0,1,2,3],'ㄗㄞ':[0,3],'ㄗㄠ':[0,2,3],'ㄗㄡ':[0,2,3],
+        'ㄗㄢ':[0,1,3],'ㄗㄣ':[2],'ㄗㄤ':[0,1,3],'ㄗㄥ':[0,3],'ㄗㄨ':[0,1,2,3],
+        'ㄘㄚ':[0,1],'ㄘㄜ':[3],'ㄘㄞ':[0,1,2,3],'ㄘㄠ':[0,2,3],'ㄘㄡ':[0,3],
+        'ㄘㄢ':[0,1,2,3],'ㄘㄣ':[0,1],'ㄘㄤ':[0,1,2],'ㄘㄥ':[0,1,2,3],'ㄘㄨ':[0,1,2,3],
+        'ㄙㄚ':[0,2,3],'ㄙㄜ':[3],'ㄙㄞ':[0,3],'ㄙㄠ':[0,2,3],'ㄙㄡ':[0,2,3],
+        'ㄙㄢ':[0,2,3],'ㄙㄣ':[0],'ㄙㄤ':[0,2,3],'ㄙㄥ':[0],'ㄙㄨ':[0,1,2,3],
+    };
 
-                const colors = [
-                    '#FF9AA2', '#B5EAD7', '#FFDAC1', '#90CCF4', '#F3D250', 
-                    '#C7CEEA', '#FAB1A0', '#81ECEC', '#FFB7B2', '#E2F0CB', '#957DAD'
-                ];
+    const colors = ['#FF9AA2','#B5EAD7','#FFDAC1','#90CCF4','#F3D250',
+                    '#C7CEEA','#FAB1A0','#81ECEC','#FFB7B2','#E2F0CB','#957DAD'];
 
-                let rotInitial = 0;
-                let rotFinal = 0;
-                let rotTone = 0;
-                let currentBopomofo = '';
-                let currentToneIdx = 0;
+    let rotInitial = 0, rotFinal = 0, rotTone = 0;
+    let speakChar = '';
 
-                const validMap = {};
-                initials.forEach(i => validMap[i] = []);
-                for (let key in toneDatabase) {
-                    let i = key.substring(0, 1);
-                    let f = key.substring(1);
-                    if (validMap[i] && !validMap[i].includes(f)) {
-                        validMap[i].push(f);
-                    }
-                }
+    const validMap = {};
+    initials.forEach(i => validMap[i] = []);
+    for (const key in toneDatabase) {
+        const i = key[0], f = key.slice(1);
+        if (validMap[i] && !validMap[i].includes(f)) validMap[i].push(f);
+    }
 
-                function createWheel(id, items) {
-                    const wheel = document.getElementById(id);
-                    if(!wheel) return;
-                    const count = items.length;
-                    const anglePerItem = 360 / count;
-                    let gradientStr = '';
-                    items.forEach((item, index) => {
-                        const startDeg = index * anglePerItem;
-                        const endDeg = (index + 1) * anglePerItem;
-                        const color = colors[index % colors.length];
-                        gradientStr += `${color} ${startDeg}deg ${endDeg}deg,`;
-                        const el = document.createElement('div');
-                        el.className = 'wheel-item';
-                        const itemCenterDeg = startDeg + (anglePerItem / 2);
-                        el.style.transform = `rotate(${itemCenterDeg}deg)`;
-                        let displayText = typeof item === 'object' ? item.display : item;
-                        el.innerHTML = displayText;
-                        wheel.appendChild(el);
-                    });
-                    wheel.style.background = `conic-gradient(${gradientStr.slice(0, -1)})`;
-                }
-
-                window.spinWheel = function() {
-                    const btn = document.querySelector('.center-btn');
-                    btn.style.pointerEvents = 'none';
-                    btn.innerText = '...';
-                    document.querySelector('.speak-btn').style.display = 'none';
-
-                    const target = getRandomValidCombo();
-
-                    const calcTargetRotation = (idx, count, currentRot) => {
-                        const angleStep = 360 / count;
-                        const itemCenter = (idx * angleStep) + (angleStep / 2);
-                        const degreesToRotate = 360 - itemCenter;
-                        const currentFullSpins = Math.floor(currentRot / 360);
-                        const targetFullSpins = currentFullSpins + 5;
-                        return (targetFullSpins * 360) + degreesToRotate;
-                    };
-
-                    rotInitial = calcTargetRotation(target.iIdx, initials.length, rotInitial);
-                    rotFinal = calcTargetRotation(target.fIdx, finals.length, rotFinal);
-                    rotTone = calcTargetRotation(target.tIdx, tones.length, rotTone);
-
-                    document.getElementById('wheel-initial').style.transform = `rotate(${rotInitial}deg)`;
-                    setTimeout(() => {
-                        document.getElementById('wheel-final').style.transform = `rotate(${rotFinal}deg)`;
-                    }, 200);
-                    setTimeout(() => {
-                        document.getElementById('wheel-tone').style.transform = `rotate(${rotTone}deg)`;
-                    }, 400);
-
-                    setTimeout(() => {
-                        showResult(target.val.i, target.val.f, target.val.t, target.tIdx);
-                        btn.style.pointerEvents = 'auto';
-                        btn.innerText = '開始';
-                    }, 4400);
-                }
-
-                window.safeSpeakResult = function() {
-                    if (!currentBopomofo) return;
-
-                    // 優先使用 ResponsiveVoice
-                    if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
-                        const pinyin = bopomofoToPinyin[currentBopomofo];
-                        if (pinyin) {
-                            // 加入聲調數字讓發音更準（部分 TTS 支援）
-                            const textToSpeak = pinyin + toneNumbers[currentToneIdx];
-                            responsiveVoice.speak(textToSpeak, "Chinese Taiwan Female", {
-                                rate: 0.7,
-                                pitch: 1.1,
-                                volume: 1
-                            });
-                        } else {
-                            // 找不到對應拼音，直接唸注音符號組合
-                            responsiveVoice.speak(currentBopomofo, "Chinese Taiwan Female", {
-                                rate: 0.7,
-                                pitch: 1.1,
-                                volume: 1
-                            });
-                        }
-                        return;
-                    }
-
-                    // 備援：瀏覽器內建 TTS
-                    if ('speechSynthesis' in window) {
-                        try {
-                            window.speechSynthesis.cancel();
-                            const u = new SpeechSynthesisUtterance(currentBopomofo);
-                            u.lang = 'zh-TW';
-                            u.rate = 0.7;
-                            u.pitch = 1.1;
-                            u.volume = 1;
-                            window.speechSynthesis.speak(u);
-                        } catch (e) {
-                            console.error("Speech error:", e);
-                            alert("發音功能發生錯誤");
-                        }
-                    } else {
-                        alert("您的裝置瀏覽器不支援發音功能");
-                    }
-                }
-
-                function getRandomValidCombo() {
-                    let safetyCounter = 0;
-                    while(safetyCounter < 500) {
-                        safetyCounter++;
-                        const randomInitial = initials[Math.floor(Math.random() * initials.length)];
-                        const allowedFinals = validMap[randomInitial];
-                        if (!allowedFinals || allowedFinals.length === 0) continue;
-                        const randomFinalChar = allowedFinals[Math.floor(Math.random() * allowedFinals.length)];
-                        const key = randomInitial + randomFinalChar;
-                        const allowedTonesIndices = toneDatabase[key];
-                        if (!allowedTonesIndices || allowedTonesIndices.length === 0) continue;
-                        const validTonesIndices = allowedTonesIndices.filter(idx => idx >= 0 && idx < tones.length);
-                        if (validTonesIndices.length === 0) continue;
-                        const randomToneIndex = validTonesIndices[Math.floor(Math.random() * validTonesIndices.length)];
-                        const randomTone = tones[randomToneIndex];
-                        return {
-                            iIdx: initials.indexOf(randomInitial),
-                            fIdx: finals.indexOf(randomFinalChar),
-                            tIdx: randomToneIndex,
-                            val: { i: randomInitial, f: randomFinalChar, t: randomTone }
-                        };
-                    }
-                    return { iIdx: 0, fIdx: 0, tIdx: 0, val: { i: 'ㄅ', f: 'ㄚ', t: tones[0] } };
-                }
-
-                function showResult(i, f, t, tIdx) {
-                    document.getElementById('res-initial').innerText = i;
-                    document.getElementById('res-final').innerText = f;
-                    if (t) {
-                        document.getElementById('res-tone').innerText = t.display;
-                        const toneMark = t.display.trim();
-                        let fullText = `${i}${f}${toneMark}`;
-                        document.getElementById('res-text').innerText = `拼音結果：${fullText}`;
-                        currentBopomofo = i + f;
-                        currentToneIdx = tIdx;
-                        document.querySelector('.speak-btn').style.display = 'inline-flex';
-                    }
-                    const boxes = document.querySelectorAll('.result-box');
-                    boxes.forEach(box => {
-                        box.style.transform = 'scale(1.1)';
-                        setTimeout(() => box.style.transform = 'scale(1)', 200);
-                    });
-                }
-
-                createWheel('wheel-initial', initials);
-                createWheel('wheel-final', finals);
-                createWheel('wheel-tone', tones);
-
-            } catch (err) {
-                console.error("Init Error:", err);
-            }
+    function createWheel(id, items) {
+        const wheel = document.getElementById(id);
+        if (!wheel) return;
+        const count = items.length, step = 360 / count;
+        let grad = '';
+        items.forEach((item, idx) => {
+            const s = idx * step, e = (idx + 1) * step;
+            grad += `${colors[idx % colors.length]} ${s}deg ${e}deg,`;
+            const el = document.createElement('div');
+            el.className = 'wheel-item';
+            el.style.transform = `rotate(${s + step / 2}deg)`;
+            el.innerHTML = typeof item === 'object' ? item.display : item;
+            wheel.appendChild(el);
         });
-    </script>
+        wheel.style.background = `conic-gradient(${grad.slice(0,-1)})`;
+    }
+
+    window.spinWheel = function() {
+        const btn = document.querySelector('.center-btn');
+        btn.style.pointerEvents = 'none';
+        btn.innerText = '...';
+        document.querySelector('.speak-btn').style.display = 'none';
+        document.getElementById('res-char').innerText = '';
+
+        const target = getRandomValidCombo();
+
+        const calcRot = (idx, count, cur) => {
+            const step = 360 / count;
+            const center = idx * step + step / 2;
+            return (Math.floor(cur / 360) + 5) * 360 + (360 - center);
+        };
+
+        rotInitial = calcRot(target.iIdx, initials.length, rotInitial);
+        rotFinal   = calcRot(target.fIdx, finals.length,   rotFinal);
+        rotTone    = calcRot(target.tIdx, tones.length,    rotTone);
+
+        document.getElementById('wheel-initial').style.transform = `rotate(${rotInitial}deg)`;
+        setTimeout(() => document.getElementById('wheel-final').style.transform = `rotate(${rotFinal}deg)`, 200);
+        setTimeout(() => document.getElementById('wheel-tone').style.transform  = `rotate(${rotTone}deg)`,  400);
+        setTimeout(() => {
+            showResult(target.val.i, target.val.f, target.val.t, target.tIdx);
+            btn.style.pointerEvents = 'auto';
+            btn.innerText = '開始';
+        }, 4400);
+    };
+
+    window.safeSpeakResult = function() {
+        if (!speakChar) return;
+        // 用真實中文字發音 → 聲調自然正確
+        if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
+            responsiveVoice.speak(speakChar, 'Chinese Taiwan Female', { rate: 0.75, pitch: 1.0, volume: 1 });
+            return;
+        }
+        // 備援：Web Speech API
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(speakChar);
+            u.lang = 'zh-TW'; u.rate = 0.75;
+            window.speechSynthesis.speak(u);
+        }
+    };
+
+    function getRandomValidCombo() {
+        for (let i = 0; i < 500; i++) {
+            const ri = initials[Math.floor(Math.random() * initials.length)];
+            const af = validMap[ri];
+            if (!af || !af.length) continue;
+            const rf = af[Math.floor(Math.random() * af.length)];
+            const key = ri + rf;
+            const at = toneDatabase[key];
+            if (!at || !at.length) continue;
+            const validT = at.filter(x => x >= 0 && x < tones.length);
+            if (!validT.length) continue;
+            const rt = validT[Math.floor(Math.random() * validT.length)];
+            return { iIdx: initials.indexOf(ri), fIdx: finals.indexOf(rf), tIdx: rt,
+                     val: { i: ri, f: rf, t: tones[rt] } };
+        }
+        return { iIdx:0, fIdx:0, tIdx:0, val:{ i:'ㄅ', f:'ㄚ', t:tones[0] } };
+    }
+
+    function showResult(i, f, t, tIdx) {
+        document.getElementById('res-initial').innerText = i;
+        document.getElementById('res-final').innerText   = f;
+        document.getElementById('res-tone').innerText    = t.display;
+        document.getElementById('res-text').innerText    = `拼音結果：${i}${f}${t.display.trim()}`;
+
+        // 查對應中文字
+        const chars = bopoToChar[i + f];
+        const ch = chars ? chars[tIdx] : null;
+        speakChar = ch || (i + f);
+
+        document.getElementById('res-char').innerText = ch ? `例字：${ch}` : '';
+        document.querySelector('.speak-btn').style.display = 'inline-flex';
+
+        document.querySelectorAll('.result-box').forEach(box => {
+            box.style.transform = 'scale(1.1)';
+            setTimeout(() => box.style.transform = 'scale(1)', 200);
+        });
+    }
+
+    createWheel('wheel-initial', initials);
+    createWheel('wheel-final',   finals);
+    createWheel('wheel-tone',    tones);
+});
+</script>
 </body>
 </html>
