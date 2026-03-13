@@ -291,6 +291,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let rotInitial = 0, rotFinal = 0, rotTone = 0;
     let speakChar = '';
+    let speakInitial = '';
+    let speakFinal = '';
+
+    // 聲母 → 發音用字（唸出聲母的音）
+    const initialToChar = {
+        'ㄅ':'玻','ㄆ':'坡','ㄇ':'摸','ㄈ':'佛',
+        'ㄉ':'得','ㄊ':'特','ㄋ':'訥','ㄌ':'勒',
+        'ㄍ':'哥','ㄎ':'科','ㄏ':'喝',
+        'ㄐ':'基','ㄑ':'欺','ㄒ':'希',
+        'ㄓ':'知','ㄔ':'嗤','ㄕ':'詩','ㄖ':'日',
+        'ㄗ':'資','ㄘ':'雌','ㄙ':'思',
+    };
+
+    // 韻母 → 發音用字（唸出韻母的音）
+    const finalToChar = {
+        'ㄚ':'啊','ㄛ':'哦','ㄜ':'鵝','ㄝ':'耶',
+        'ㄞ':'哀','ㄟ':'欸','ㄠ':'奧','ㄡ':'歐',
+        'ㄢ':'安','ㄣ':'恩','ㄤ':'昂','ㄥ':'鞥','ㄦ':'兒',
+        'ㄧ':'一','ㄨ':'烏','ㄩ':'魚',
+    };
 
     const validMap = {};
     initials.forEach(i => validMap[i] = []);
@@ -345,20 +365,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 4400);
     };
 
+    // 依序播放：聲母字 → 韻母字 → 完整字
     window.safeSpeakResult = function() {
         if (!speakChar) return;
-        // 用真實中文字發音 → 聲調自然正確
-        if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
-            responsiveVoice.speak(speakChar, 'Chinese Taiwan Female', { rate: 0.75, pitch: 1.0, volume: 1 });
-            return;
+
+        const btn = document.querySelector('.speak-btn');
+        btn.disabled = true;
+        btn.innerText = '🔊 播放中...';
+
+        const sequence = [
+            speakInitial,  // 聲母的代表字，例如「玻」代表ㄅ
+            speakFinal,    // 韻母的代表字，例如「啊」代表ㄚ
+            speakChar,     // 完整音節字，例如「爸」
+        ].filter(Boolean);
+
+        let idx = 0;
+
+        function speakNext() {
+            if (idx >= sequence.length) {
+                btn.disabled = false;
+                btn.innerText = '🔊 聽發音';
+                return;
+            }
+            const text = sequence[idx++];
+
+            if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
+                responsiveVoice.speak(text, 'Chinese Taiwan Female', {
+                    rate: 0.7,
+                    pitch: 1.0,
+                    volume: 1,
+                    onend: () => setTimeout(speakNext, 350),  // 每段間隔 350ms
+                });
+            } else if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'zh-TW'; u.rate = 0.7;
+                u.onend = () => setTimeout(speakNext, 350);
+                window.speechSynthesis.speak(u);
+            } else {
+                btn.disabled = false;
+                btn.innerText = '🔊 聽發音';
+            }
         }
-        // 備援：Web Speech API
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(speakChar);
-            u.lang = 'zh-TW'; u.rate = 0.75;
-            window.speechSynthesis.speak(u);
-        }
+
+        speakNext();
     };
 
     function getRandomValidCombo() {
@@ -388,7 +438,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // 查對應中文字
         const chars = bopoToChar[i + f];
         const ch = chars ? chars[tIdx] : null;
-        speakChar = ch || (i + f);
+        speakChar    = ch || (i + f);
+        speakInitial = initialToChar[i] || i;
+        speakFinal   = finalToChar[f]   || f;
 
         document.getElementById('res-char').innerText = ch ? `例字：${ch}` : '';
         document.querySelector('.speak-btn').style.display = 'inline-flex';
