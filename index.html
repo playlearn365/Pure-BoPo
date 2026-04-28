@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>注音轉盤遊戲</title>
-    <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
     <style>
         :root { --bg-color: #FFF9F2; --wheel-border: #fff; }
         body {
@@ -53,6 +52,9 @@
             box-shadow: 0 5px 15px rgba(255,154,162,0.4); cursor: pointer;
             display: flex; justify-content: center; align-items: center;
             font-weight: bold; color: #333; font-size: 18px; transition: transform 0.1s;
+            /* Android: use touchend instead of click */
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         .center-btn:active { transform: scale(0.95); }
         .result-panel {
@@ -83,7 +85,9 @@
             border-radius: 25px; font-size: 18px; font-weight: bold; cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.2s;
             display: none; align-items: center; gap: 8px;
-            user-select: none; -webkit-user-select: none; touch-action: manipulation;
+            user-select: none; -webkit-user-select: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         .speak-btn:hover { background-color: #36b9b0; transform: translateY(-2px); }
         .speak-btn:active { transform: translateY(0); }
@@ -100,7 +104,7 @@
         <div class="wheel outer-ring"  id="wheel-initial"></div>
         <div class="wheel middle-ring" id="wheel-final"></div>
         <div class="wheel inner-ring"  id="wheel-tone"></div>
-        <div class="center-btn" onclick="spinWheel()">開始</div>
+        <div class="center-btn" id="spin-btn">開始</div>
     </div>
     <div class="result-panel">
         <div class="result-labels">
@@ -115,14 +119,94 @@
         </div>
         <div class="full-sound" id="res-text">準備開始...</div>
         <div class="char-hint"  id="res-char"></div>
-        <button class="speak-btn" onclick="safeSpeakResult()">🔊 聽發音</button>
+        <button class="speak-btn" id="speak-btn">🔊 聽發音</button>
     </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
-    // 注音組合 + 聲調索引 → 對應中文字
-    // 索引 0=一聲 1=二聲 2=三聲 3=四聲，null=無常用字
+    // ── AudioContext unlock for Android ──────────────────────────────
+    let audioCtx = null;
+    function unlockAudio() {
+        if (audioCtx) return;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            // play a silent buffer to fully unlock
+            const buf = audioCtx.createBuffer(1, 1, 22050);
+            const src = audioCtx.createBufferSource();
+            src.buffer = buf;
+            src.connect(audioCtx.destination);
+            src.start(0);
+        } catch(e) {}
+    }
+    document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+    document.addEventListener('click',      unlockAudio, { once: true });
+
+    // ── TTS helper: Android-safe ──────────────────────────────────────
+    // Android Chrome SpeechSynthesis often needs voices to load first.
+    // We queue requests and wait for voices if needed.
+    let ttsQueue = [];
+    let ttsBusy  = false;
+
+    function getZhVoice() {
+        const voices = window.speechSynthesis.getVoices();
+        return voices.find(v => /zh[-_](TW|HK|Hant)/i.test(v.lang))
+            || voices.find(v => /zh/i.test(v.lang))
+            || null;
+    }
+
+    function speakOne(text, onEnd) {
+        if (!('speechSynthesis' in window)) { onEnd && onEnd(); return; }
+        window.speechSynthesis.cancel();
+
+        function doSpeak() {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang  = 'zh-TW';
+            u.rate  = 0.75;
+            u.pitch = 1.0;
+            u.volume = 1.0;
+            const v = getZhVoice();
+            if (v) u.voice = v;
+            u.onend   = () => { setTimeout(() => { onEnd && onEnd(); }, 350); };
+            u.onerror = () => { onEnd && onEnd(); };
+            window.speechSynthesis.speak(u);
+        }
+
+        // If voices not loaded yet, wait
+        if (window.speechSynthesis.getVoices().length === 0) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.onvoiceschanged = null;
+                doSpeak();
+            };
+            // Fallback: just try after 500ms if event never fires
+            setTimeout(() => {
+                if (!ttsBusy) return;
+                doSpeak();
+            }, 600);
+        } else {
+            doSpeak();
+        }
+    }
+
+    function speakSequence(texts) {
+        if (ttsBusy) return;
+        ttsBusy = true;
+        let idx = 0;
+        function next() {
+            if (idx >= texts.length) {
+                ttsBusy = false;
+                const btn = document.getElementById('speak-btn');
+                btn.disabled = false;
+                btn.innerText = '🔊 聽發音';
+                return;
+            }
+            speakOne(texts[idx++], next);
+        }
+        next();
+    }
+
+    // ── 注音資料 ──────────────────────────────────────────────────────
     const bopoToChar = {
         'ㄅㄚ':['巴','拔','把','爸'], 'ㄅㄛ':['波','薄','跛','播'],
         'ㄅㄞ':['掰','白','擺','敗'], 'ㄅㄟ':['杯',null,'背','背'],
@@ -294,7 +378,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let speakInitial = '';
     let speakFinal = '';
 
-    // 聲母 → 發音用字（唸出聲母的音）
     const initialToChar = {
         'ㄅ':'玻','ㄆ':'坡','ㄇ':'摸','ㄈ':'佛',
         'ㄉ':'得','ㄊ':'特','ㄋ':'訥','ㄌ':'勒',
@@ -303,8 +386,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'ㄓ':'知','ㄔ':'嗤','ㄕ':'詩','ㄖ':'日',
         'ㄗ':'資','ㄘ':'雌','ㄙ':'思',
     };
-
-    // 韻母 → 發音用字（唸出韻母的音）
     const finalToChar = {
         'ㄚ':'啊','ㄛ':'哦','ㄜ':'鵝','ㄝ':'耶',
         'ㄞ':'哀','ㄟ':'欸','ㄠ':'奧','ㄡ':'歐',
@@ -336,11 +417,13 @@ document.addEventListener('DOMContentLoaded', function() {
         wheel.style.background = `conic-gradient(${grad.slice(0,-1)})`;
     }
 
-    window.spinWheel = function() {
-        const btn = document.querySelector('.center-btn');
+    // ── 轉盤旋轉 ─────────────────────────────────────────────────────
+    function spinWheel() {
+        unlockAudio(); // ensure audio context is unlocked on first interaction
+        const btn = document.getElementById('spin-btn');
         btn.style.pointerEvents = 'none';
         btn.innerText = '...';
-        document.querySelector('.speak-btn').style.display = 'none';
+        document.getElementById('speak-btn').style.display = 'none';
         document.getElementById('res-char').innerText = '';
 
         const target = getRandomValidCombo();
@@ -363,54 +446,34 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.style.pointerEvents = 'auto';
             btn.innerText = '開始';
         }, 4400);
-    };
+    }
 
-    // 依序播放：聲母字 → 韻母字 → 完整字
-    window.safeSpeakResult = function() {
-        if (!speakChar) return;
-
-        const btn = document.querySelector('.speak-btn');
+    // ── 聽發音按鈕 ───────────────────────────────────────────────────
+    function handleSpeak() {
+        if (!speakChar || ttsBusy) return;
+        unlockAudio();
+        const btn = document.getElementById('speak-btn');
         btn.disabled = true;
         btn.innerText = '🔊 播放中...';
+        const sequence = [speakInitial, speakFinal, speakChar].filter(Boolean);
+        speakSequence(sequence);
+    }
 
-        const sequence = [
-            speakInitial,  // 聲母的代表字，例如「玻」代表ㄅ
-            speakFinal,    // 韻母的代表字，例如「啊」代表ㄚ
-            speakChar,     // 完整音節字，例如「爸」
-        ].filter(Boolean);
+    // ── 綁定事件（同時支援 click 和 touchend，防止 Android 漏掉）──
+    function addTapHandler(el, fn) {
+        let touchMoved = false;
+        el.addEventListener('touchstart', () => { touchMoved = false; }, { passive: true });
+        el.addEventListener('touchmove',  () => { touchMoved = true;  }, { passive: true });
+        el.addEventListener('touchend', (e) => {
+            if (!touchMoved) { e.preventDefault(); fn(); }
+        });
+        el.addEventListener('click', fn);
+    }
 
-        let idx = 0;
+    addTapHandler(document.getElementById('spin-btn'),  spinWheel);
+    addTapHandler(document.getElementById('speak-btn'), handleSpeak);
 
-        function speakNext() {
-            if (idx >= sequence.length) {
-                btn.disabled = false;
-                btn.innerText = '🔊 聽發音';
-                return;
-            }
-            const text = sequence[idx++];
-
-            if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
-                responsiveVoice.speak(text, 'Chinese Taiwan Female', {
-                    rate: 0.7,
-                    pitch: 1.0,
-                    volume: 1,
-                    onend: () => setTimeout(speakNext, 350),  // 每段間隔 350ms
-                });
-            } else if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(text);
-                u.lang = 'zh-TW'; u.rate = 0.7;
-                u.onend = () => setTimeout(speakNext, 350);
-                window.speechSynthesis.speak(u);
-            } else {
-                btn.disabled = false;
-                btn.innerText = '🔊 聽發音';
-            }
-        }
-
-        speakNext();
-    };
-
+    // ── 工具函式 ──────────────────────────────────────────────────────
     function getRandomValidCombo() {
         for (let i = 0; i < 500; i++) {
             const ri = initials[Math.floor(Math.random() * initials.length)];
@@ -435,7 +498,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('res-tone').innerText    = t.display;
         document.getElementById('res-text').innerText    = `拼音結果：${i}${f}${t.display.trim()}`;
 
-        // 查對應中文字
         const chars = bopoToChar[i + f];
         const ch = chars ? chars[tIdx] : null;
         speakChar    = ch || (i + f);
@@ -443,7 +505,10 @@ document.addEventListener('DOMContentLoaded', function() {
         speakFinal   = finalToChar[f]   || f;
 
         document.getElementById('res-char').innerText = ch ? `例字：${ch}` : '';
-        document.querySelector('.speak-btn').style.display = 'inline-flex';
+        const speakBtnEl = document.getElementById('speak-btn');
+        speakBtnEl.style.display = 'inline-flex';
+        speakBtnEl.disabled = false;
+        speakBtnEl.innerText = '🔊 聽發音';
 
         document.querySelectorAll('.result-box').forEach(box => {
             box.style.transform = 'scale(1.1)';
